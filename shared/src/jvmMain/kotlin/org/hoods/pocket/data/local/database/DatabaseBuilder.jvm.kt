@@ -7,7 +7,7 @@ import org.hoods.pocket.data.repository.RoomTransactionRepository
 import org.hoods.pocket.domain.repository.TransactionRepository
 
 fun getDatabaseBuilder(): RoomDatabase.Builder<AppDatabase> {
-    val dbFile = File(System.getProperty("user.home"), ".pocket-budget/pocket_budget.db")
+    val dbFile = File(System.getProperty("user.home"), ".pocket-budget-course/pocket_budget.db")
     dbFile.parentFile?.mkdirs()
     return Room.databaseBuilder<AppDatabase>(
         name = dbFile.absolutePath
