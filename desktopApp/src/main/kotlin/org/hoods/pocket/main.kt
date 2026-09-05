@@ -2,12 +2,14 @@ package org.hoods.pocket
 
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import org.hoods.pocket.data.local.database.createTransactionRepository
 
 fun main() = application {
+    val repository = createTransactionRepository()
     Window(
         onCloseRequest = ::exitApplication,
         title = "pocket-budget",
     ) {
-        App()
+        App(repository = repository)
     }
 }
