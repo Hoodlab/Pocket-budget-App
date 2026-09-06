@@ -1,5 +1,6 @@
 package org.hoods.pocket.domain.util
 
+import org.hoods.pocket.domain.model.TransactionType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -38,5 +39,14 @@ class MoneyParserTest {
         assertEquals("0.99", MoneyParser.formatCentsToAmount(99L))
         assertEquals("3000.00", MoneyParser.formatCentsToAmount(300000L))
         assertEquals("0.00", MoneyParser.formatCentsToAmount(0L))
+    }
+
+    @Test
+    fun formatSignedAmount_formatsIncomeAndExpenseCorrectly() {
+        assertEquals("+$650.00", MoneyParser.formatSignedAmount(65000L, TransactionType.INCOME))
+        assertEquals("-$45.50", MoneyParser.formatSignedAmount(4550L, TransactionType.EXPENSE))
+        assertEquals("+$0.05", MoneyParser.formatSignedAmount(5L, TransactionType.INCOME))
+        assertEquals("-$0.99", MoneyParser.formatSignedAmount(99L, TransactionType.EXPENSE))
+        assertEquals("+$3000.00", MoneyParser.formatSignedAmount(300000L, TransactionType.INCOME))
     }
 }

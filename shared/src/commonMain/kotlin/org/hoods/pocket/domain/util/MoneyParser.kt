@@ -1,6 +1,7 @@
 package org.hoods.pocket.domain.util
 
 import kotlin.math.abs
+import org.hoods.pocket.domain.model.TransactionType
 
 object MoneyParser {
 
@@ -51,5 +52,17 @@ object MoneyParser {
         val fractionStr = if (fraction < 10) "0$fraction" else "$fraction"
         val prefix = if (isNegative) "-" else ""
         return "$prefix$whole.$fractionStr"
+    }
+
+    /**
+     * Formats integer cents to a signed currency string based on transaction type.
+     * E.g. (65000L, INCOME) -> "+$650.00", (4550L, EXPENSE) -> "-$45.50".
+     * Strictly avoids Double or Float.
+     */
+    fun formatSignedAmount(cents: Long, type: TransactionType): String {
+        val sign = if (type == TransactionType.INCOME) "+" else "-"
+        val absCents = abs(cents)
+        val amount = formatCentsToAmount(absCents)
+        return "$sign$$amount"
     }
 }
