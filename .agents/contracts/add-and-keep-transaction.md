@@ -11,13 +11,13 @@ A user can enter a valid income or expense, save it locally, see it in the trans
 - **Add-Transaction Form:** Compose Multiplatform input form allowing users to enter a standard monetary amount (e.g., `45.50`), description, and type (`INCOME` / `EXPENSE`), which converts the entered amount into `Long` integer cents (e.g., `4550L`) upon submission.
 - **Transaction List UI:** Compose Multiplatform list view displaying saved transactions with amount, type, description, and date.
 - **Persistence Across Restarts:** Stored transactions are retained locally in SQLite/Room across app launches.
+- **Typed Navigation:** Typed Compose navigation may replace the current transaction-list and add-transaction screen state. The migration must preserve add, save, dismiss, list-update, and restart behaviour.
 
 ## 3. Explicit Exclusions
 - Edit and delete transaction capabilities.
 - Budgets, budget allocation, and progress tracking.
 - Category management or custom categories.
 - Date picker component (dates use current `kotlin.time.Instant` / default timestamp).
-- Typed navigation frameworks and complex navigation graphs.
 - Authentication, user accounts, and cloud synchronization.
 - Recurring transactions.
 
