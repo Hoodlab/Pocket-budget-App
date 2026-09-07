@@ -38,4 +38,31 @@ class RoomTransactionRepository(
             )
         )
     }
+
+    override suspend fun updateTransaction(transaction: Transaction) {
+        dao.updateTransaction(
+            TransactionEntity(
+                id = transaction.id,
+                description = transaction.description,
+                amount = transaction.amount,
+                type = transaction.type.name,
+                dateEpochMillis = transaction.date.toEpochMilliseconds()
+            )
+        )
+    }
+
+    override suspend fun deleteTransaction(id: String) {
+        dao.deleteTransactionById(id)
+    }
+
+    override suspend fun getTransactionById(id: String): Transaction? {
+        val entity = dao.getTransactionById(id) ?: return null
+        return Transaction(
+            id = entity.id,
+            description = entity.description,
+            amount = entity.amount,
+            type = TransactionType.valueOf(entity.type),
+            date = Instant.fromEpochMilliseconds(entity.dateEpochMillis)
+        )
+    }
 }

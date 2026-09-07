@@ -1,6 +1,7 @@
-package org.hoods.pocket.ui.transaction
+package org.hoods.pocket.presentation.transaction.list
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,11 +23,12 @@ import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.util.MoneyParser
-import org.hoods.pocket.ui.theme.PocketColors
+import org.hoods.pocket.presentation.theme.PocketColors
 
 @Composable
 fun TransactionItem(
     transaction: Transaction,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isIncome = transaction.type == TransactionType.INCOME
@@ -34,11 +36,21 @@ fun TransactionItem(
     val dateString = transaction.date.toString().substringBefore('T')
     val typeLabel = if (isIncome) "Income" else "Expense"
 
-    Row(
-        modifier = modifier
+    val rowModifier = if (onClick != null) {
+        modifier
             .fillMaxWidth()
             .height(72.dp)
-            .padding(horizontal = 16.dp),
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp)
+    } else {
+        modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .padding(horizontal = 16.dp)
+    }
+
+    Row(
+        modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Leading 40.dp Type Badge

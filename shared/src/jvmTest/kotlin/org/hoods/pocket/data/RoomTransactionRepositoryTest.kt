@@ -121,4 +121,70 @@ class RoomTransactionRepositoryTest {
             tempFile.delete()
         }
     }
+
+    @Test
+    fun updateTransaction_modifiesExistingRecordWithoutDuplication() = runTest {
+        val original = Transaction(
+            id = "tx-update-1",
+            description = "Groceries",
+            amount = 4550L,
+            type = TransactionType.EXPENSE,
+            date = Instant.fromEpochMilliseconds(1717171717000L)
+        )
+        repository.insertTransaction(original)
+
+        val updated = original.copy(
+            description = "Supermarket",
+            amount = 5200L,
+            type = TransactionType.EXPENSE
+        )
+        repository.updateTransaction(updated)
+
+        val transactions = repository.getTransactions().first()
+        assertEquals(1, transactions.size)
+        assertEquals(updated, transactions.first())
+    }
+
+    @Test
+    fun deleteTransaction_removesRecordFromDatabase() = runTest {
+        val tx1 = Transaction(
+            id = "tx-del-1",
+            description = "Coffee",
+            amount = 450L,
+            type = TransactionType.EXPENSE,
+            date = Instant.fromEpochMilliseconds(1000L)
+        )
+        val tx2 = Transaction(
+            id = "tx-del-2",
+            description = "Lunch",
+            amount = 1200L,
+            type = TransactionType.EXPENSE,
+            date = Instant.fromEpochMilliseconds(2000L)
+        )
+        repository.insertTransaction(tx1)
+        repository.insertTransaction(tx2)
+
+        repository.deleteTransaction(tx1.id)
+
+        val remaining = repository.getTransactions().first()
+        assertEquals(listOf(tx2), remaining)
+    }
+
+    @Test
+    fun getTransactionById_returnsCorrectTransactionOrNull() = runTest {
+        val tx = Transaction(
+            id = "tx-find-1",
+            description = "Freelance",
+            amount = 50000L,
+            type = TransactionType.INCOME,
+            date = Instant.fromEpochMilliseconds(1717171717000L)
+        )
+        repository.insertTransaction(tx)
+
+        val found = repository.getTransactionById("tx-find-1")
+        assertEquals(tx, found)
+
+        val notFound = repository.getTransactionById("non-existent")
+        assertEquals(null, notFound)
+    }
 }

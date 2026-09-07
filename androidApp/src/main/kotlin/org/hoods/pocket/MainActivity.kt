@@ -32,6 +32,9 @@ fun AppAndroidPreview() {
         object : TransactionRepository {
             override fun getTransactions() = emptyFlow<List<Transaction>>()
             override suspend fun insertTransaction(transaction: Transaction) {}
+            override suspend fun updateTransaction(transaction: Transaction) {}
+            override suspend fun deleteTransaction(id: String) {}
+            override suspend fun getTransactionById(id: String): Transaction? = null
         }
     }
     App(repository = previewRepo)

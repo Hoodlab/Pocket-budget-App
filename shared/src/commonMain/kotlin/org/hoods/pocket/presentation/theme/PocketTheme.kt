@@ -1,4 +1,4 @@
-package org.hoods.pocket.ui.theme
+package org.hoods.pocket.presentation.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme

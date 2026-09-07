@@ -12,16 +12,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
 
-class FakeTransactionRepository : TransactionRepository {
-    private val transactionsFlow = MutableStateFlow<List<Transaction>>(emptyList())
-
-    override fun getTransactions(): Flow<List<Transaction>> = transactionsFlow.asStateFlow()
-
-    override suspend fun insertTransaction(transaction: Transaction) {
-        transactionsFlow.value = transactionsFlow.value + transaction
-    }
-}
-
 class AddTransactionUseCaseTest {
 
     @Test

@@ -50,46 +50,114 @@ sealed interface Screen {
 - Use `data object` for destinations without arguments.
 - Use `data class` with `@Serializable` for destinations requiring typed arguments (e.g., entity IDs).
 
+```kotlin
+sealed interface Screen {
+    @Serializable
+    data object TransactionList : Screen
+
+    @Serializable
+    data object AddTransaction : Screen
+
+    @Serializable
+    data class EditTransaction(val transactionId: String) : Screen
+}
+```
+
 ---
 
-## 3. Wiring the NavHost
+## 3. Dedicated Navigation Host Composable
 
-Assemble the navigation hierarchy inside `App.kt` or a root navigation composable:
+Keep `App` focused on theme and app shell, keep repository state and use-case actions in a root composable, and let a dedicated navigation host own `rememberNavController()`, typed routes, and back-stack behavior:
 
 ```kotlin
 @Composable
-fun App(
-    repository: TransactionRepository
+fun App(repository: TransactionRepository) {
+    PocketTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(PocketColors.Surface)
+                .safeContentPadding()
+        ) {
+            PocketBudgetRoot(repository = repository)
+        }
+    }
+}
+
+@Composable
+fun PocketBudgetRoot(
+    repository: TransactionRepository,
+    modifier: Modifier = Modifier
 ) {
-    val navController = rememberNavController()
     val addTransactionUseCase = remember(repository) { AddTransactionUseCase(repository) }
-    val coroutineScope = rememberCoroutineScope()
+    val updateTransactionUseCase = remember(repository) { UpdateTransactionUseCase(repository) }
+    val deleteTransactionUseCase = remember(repository) { DeleteTransactionUseCase(repository) }
+    val getTransactionByIdUseCase = remember(repository) { GetTransactionByIdUseCase(repository) }
     val transactions by repository.getTransactions().collectAsState(initial = emptyList())
 
-    PocketTheme {
-        NavHost(
-            navController = navController,
-            startDestination = Screen.TransactionList
-        ) {
-            composable<Screen.TransactionList> {
-                TransactionListScreen(
-                    transactions = transactions,
-                    onAddTransactionClick = {
-                        navController.navigate(Screen.AddTransaction)
-                    }
-                )
+    PocketNavHost(
+        transactions = transactions,
+        onAddTransaction = { transaction -> addTransactionUseCase(transaction) },
+        onUpdateTransaction = { updatedTransaction -> updateTransactionUseCase(updatedTransaction) },
+        onDeleteTransaction = { transactionId -> deleteTransactionUseCase(transactionId) },
+        onLoadTransaction = { transactionId -> getTransactionByIdUseCase(transactionId) },
+        modifier = modifier
+    )
+}
+```
+
+In `PocketNavHost`, pass state and actions into screen composables and load entity data by ID rather than querying the rendered list:
+
+```kotlin
+@Composable
+fun PocketNavHost(
+    transactions: List<Transaction>,
+    onAddTransaction: suspend (Transaction) -> Unit,
+    onUpdateTransaction: suspend (Transaction) -> Unit,
+    onDeleteTransaction: suspend (String) -> Unit,
+    onLoadTransaction: suspend (String) -> Transaction?,
+    modifier: Modifier = Modifier,
+    navController: NavHostController = rememberNavController()
+) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.TransactionList,
+        modifier = modifier
+    ) {
+        composable<Screen.TransactionList> {
+            TransactionListScreen(
+                transactions = transactions,
+                onAddTransactionClick = { navController.navigate(Screen.AddTransaction) },
+                onTransactionClick = { transactionId -> navController.navigate(Screen.EditTransaction(transactionId)) }
+            )
+        }
+        composable<Screen.AddTransaction> {
+            AddTransactionForm(
+                onSaveTransaction = { transaction ->
+                    onAddTransaction(transaction)
+                    navController.popBackStack()
+                },
+                onDismiss = { navController.popBackStack() }
+            )
+        }
+        composable<Screen.EditTransaction> { backStackEntry ->
+            val editRoute = backStackEntry.toRoute<Screen.EditTransaction>()
+            var transaction by remember(editRoute.transactionId) { mutableStateOf<Transaction?>(null) }
+            LaunchedEffect(editRoute.transactionId) {
+                transaction = onLoadTransaction(editRoute.transactionId)
             }
-            composable<Screen.AddTransaction> {
-                AddTransactionForm(
-                    onSaveTransaction = { transaction ->
-                        coroutineScope.launch {
-                            addTransactionUseCase(transaction)
-                            navController.popBackStack()
-                        }
-                    },
-                    onDismiss = {
+            transaction?.let { currentTx ->
+                EditTransactionScreen(
+                    transaction = currentTx,
+                    onSaveTransaction = { updated ->
+                        onUpdateTransaction(updated)
                         navController.popBackStack()
-                    }
+                    },
+                    onDeleteTransaction = { id ->
+                        onDeleteTransaction(id)
+                        navController.popBackStack()
+                    },
+                    onDismiss = { navController.popBackStack() }
                 )
             }
         }

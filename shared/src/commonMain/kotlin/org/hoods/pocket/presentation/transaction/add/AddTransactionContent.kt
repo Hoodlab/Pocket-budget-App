@@ -1,4 +1,4 @@
-package org.hoods.pocket.ui.transaction
+package org.hoods.pocket.presentation.transaction.add
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,16 +21,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,26 +34,20 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.time.Clock
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
-import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionType
-import org.hoods.pocket.domain.util.MoneyParser
-import org.hoods.pocket.ui.theme.PocketColors
+import org.hoods.pocket.presentation.theme.PocketColors
+import androidx.compose.ui.tooling.preview.Preview
 
-@OptIn(ExperimentalUuidApi::class)
 @Composable
-fun AddTransactionForm(
-    onSaveTransaction: (Transaction) -> Unit,
-    onDismiss: (() -> Unit)? = null,
+fun AddTransactionContent(
+    uiState: AddTransactionUiState,
+    onTypeSelected: (TransactionType) -> Unit,
+    onDescriptionChanged: (String) -> Unit,
+    onAmountChanged: (String) -> Unit,
+    onSaveClick: () -> Unit,
+    onDismiss: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
-    var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
-    var description by remember { mutableStateOf("") }
-    var amountText by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -107,18 +94,15 @@ fun AddTransactionForm(
                     modifier = Modifier
                         .clip(RoundedCornerShape(percent = 50))
                         .background(
-                            if (selectedType == TransactionType.EXPENSE) PocketColors.Primary
+                            if (uiState.selectedType == TransactionType.EXPENSE) PocketColors.Primary
                             else Color.Transparent
                         )
-                        .clickable {
-                            selectedType = TransactionType.EXPENSE
-                            errorMessage = null
-                        }
+                        .clickable { onTypeSelected(TransactionType.EXPENSE) }
                         .padding(horizontal = 24.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = "Expense",
-                        color = if (selectedType == TransactionType.EXPENSE) PocketColors.OnPrimary
+                        color = if (uiState.selectedType == TransactionType.EXPENSE) PocketColors.OnPrimary
                         else PocketColors.OnSurfaceVariant,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp
@@ -129,18 +113,15 @@ fun AddTransactionForm(
                     modifier = Modifier
                         .clip(RoundedCornerShape(percent = 50))
                         .background(
-                            if (selectedType == TransactionType.INCOME) PocketColors.Primary
+                            if (uiState.selectedType == TransactionType.INCOME) PocketColors.Primary
                             else Color.Transparent
                         )
-                        .clickable {
-                            selectedType = TransactionType.INCOME
-                            errorMessage = null
-                        }
+                        .clickable { onTypeSelected(TransactionType.INCOME) }
                         .padding(horizontal = 24.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = "Income",
-                        color = if (selectedType == TransactionType.INCOME) PocketColors.OnPrimary
+                        color = if (uiState.selectedType == TransactionType.INCOME) PocketColors.OnPrimary
                         else PocketColors.OnSurfaceVariant,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp
@@ -154,8 +135,8 @@ fun AddTransactionForm(
         Spacer(modifier = Modifier.height(32.dp))
 
         // Hero Amount Display
-        val displayAmount = if (amountText.isBlank()) "$0.00" else {
-            val trimmed = amountText.trim().removePrefix("$")
+        val displayAmount = if (uiState.amountText.isBlank()) "$0.00" else {
+            val trimmed = uiState.amountText.trim().removePrefix("$")
             "$$trimmed"
         }
         Text(
@@ -191,14 +172,8 @@ fun AddTransactionForm(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { input ->
-                        // Allow only digits and at most one decimal point
-                        if (input.all { it.isDigit() || it == '.' || it == '$' }) {
-                            amountText = input.removePrefix("$").trim()
-                            errorMessage = null
-                        }
-                    },
+                    value = uiState.amountText,
+                    onValueChange = onAmountChanged,
                     placeholder = {
                         Text("0.00", color = PocketColors.OnSurfaceVariant.copy(alpha = 0.6f))
                     },
@@ -229,11 +204,8 @@ fun AddTransactionForm(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
-                    value = description,
-                    onValueChange = {
-                        description = it
-                        errorMessage = null
-                    },
+                    value = uiState.description,
+                    onValueChange = onDescriptionChanged,
                     placeholder = {
                         Text("Description (e.g. Whole Foods)", color = PocketColors.OnSurfaceVariant.copy(alpha = 0.6f))
                     },
@@ -286,10 +258,10 @@ fun AddTransactionForm(
             }
         }
 
-        if (errorMessage != null) {
+        if (uiState.errorMessage != null) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = errorMessage.orEmpty(),
+                text = uiState.errorMessage,
                 color = PocketColors.Error,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
@@ -301,43 +273,26 @@ fun AddTransactionForm(
         Spacer(modifier = Modifier.height(32.dp))
 
         // Save Action Button
-        val buttonText = if (selectedType == TransactionType.EXPENSE) {
+        val buttonText = if (uiState.isSaving) {
+            "Saving..."
+        } else if (uiState.selectedType == TransactionType.EXPENSE) {
             "Save Transaction"
         } else {
             "Save Income"
         }
 
         Button(
-            onClick = {
-                if (description.isBlank()) {
-                    errorMessage = "Transaction description must not be blank"
-                    return@Button
-                }
-                val cents = MoneyParser.parseAmountToCents(amountText)
-                if (cents == null || cents <= 0L) {
-                    errorMessage = "Please enter a valid amount greater than zero"
-                    return@Button
-                }
-
-                val transaction = Transaction(
-                    id = Uuid.random().toString(),
-                    description = description.trim(),
-                    amount = cents,
-                    type = selectedType,
-                    date = Clock.System.now()
-                )
-                onSaveTransaction(transaction)
-                description = ""
-                amountText = ""
-                errorMessage = null
-            },
+            onClick = onSaveClick,
+            enabled = !uiState.isSaving,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
             shape = RoundedCornerShape(percent = 50),
             colors = ButtonDefaults.buttonColors(
                 containerColor = PocketColors.Primary,
-                contentColor = PocketColors.OnPrimary
+                contentColor = PocketColors.OnPrimary,
+                disabledContainerColor = PocketColors.Primary.copy(alpha = 0.5f),
+                disabledContentColor = PocketColors.OnPrimary.copy(alpha = 0.7f)
             )
         ) {
             Text(
@@ -347,4 +302,21 @@ fun AddTransactionForm(
             )
         }
     }
+}
+
+@Preview
+@Composable
+fun AddTransactionContentPreview() {
+    AddTransactionContent(
+        uiState = AddTransactionUiState(
+            selectedType = TransactionType.EXPENSE,
+            description = "Dinner with friends",
+            amountText = "45.50"
+        ),
+        onTypeSelected = {},
+        onDescriptionChanged = {},
+        onAmountChanged = {},
+        onSaveClick = {},
+        onDismiss = {}
+    )
 }
