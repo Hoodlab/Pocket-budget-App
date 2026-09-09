@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,14 +37,15 @@ fun TransactionItem(
     val dateString = transaction.date.toString().substringBefore('T')
     val typeLabel = if (isIncome) "Income" else "Expense"
 
+    val baseModifier = modifier.testTag("transaction_item_${transaction.id}")
     val rowModifier = if (onClick != null) {
-        modifier
+        baseModifier
             .fillMaxWidth()
             .height(72.dp)
             .clickable { onClick() }
             .padding(horizontal = 16.dp)
     } else {
-        modifier
+        baseModifier
             .fillMaxWidth()
             .height(72.dp)
             .padding(horizontal = 16.dp)

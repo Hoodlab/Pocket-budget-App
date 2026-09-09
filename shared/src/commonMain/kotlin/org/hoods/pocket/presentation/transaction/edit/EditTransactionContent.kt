@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.presentation.theme.PocketColors
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import kotlin.time.Instant
 
@@ -102,6 +103,7 @@ fun EditTransactionContent(
                         )
                         .clickable { onTypeSelected(TransactionType.EXPENSE) }
                         .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .testTag("type_toggle_expense")
                 ) {
                     Text(
                         text = "Expense",
@@ -121,6 +123,7 @@ fun EditTransactionContent(
                         )
                         .clickable { onTypeSelected(TransactionType.INCOME) }
                         .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .testTag("type_toggle_income")
                 ) {
                     Text(
                         text = "Income",
@@ -138,7 +141,8 @@ fun EditTransactionContent(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(PocketColors.SurfaceContainer)
-                    .clickable(enabled = !uiState.isSaving && !uiState.isDeleting) { onRequestDelete() },
+                    .clickable(enabled = !uiState.isSaving && !uiState.isDeleting) { onRequestDelete() }
+                    .testTag("delete_transaction_button"),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -196,7 +200,9 @@ fun EditTransactionContent(
                     prefix = {
                         Text("$", color = PocketColors.Primary, fontWeight = FontWeight.Bold)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("amount_input"),
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -225,7 +231,9 @@ fun EditTransactionContent(
                     placeholder = {
                         Text("Description", color = PocketColors.OnSurfaceVariant.copy(alpha = 0.6f))
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("description_input"),
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -282,7 +290,9 @@ fun EditTransactionContent(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("error_message")
             )
         }
 
@@ -295,7 +305,8 @@ fun EditTransactionContent(
             enabled = !uiState.isSaving && !uiState.isDeleting,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
+                .height(52.dp)
+                .testTag("save_changes_button"),
             shape = RoundedCornerShape(percent = 50),
             colors = ButtonDefaults.buttonColors(
                 containerColor = PocketColors.Primary,
@@ -341,7 +352,8 @@ fun EditTransactionContent(
                         disabledContainerColor = PocketColors.Error.copy(alpha = 0.5f),
                         disabledContentColor = Color.White.copy(alpha = 0.7f)
                     ),
-                    shape = RoundedCornerShape(percent = 50)
+                    shape = RoundedCornerShape(percent = 50),
+                    modifier = Modifier.testTag("confirm_delete_button")
                 ) {
                     Text(
                         text = if (uiState.isDeleting) "Deleting..." else "Delete",
@@ -352,7 +364,8 @@ fun EditTransactionContent(
             dismissButton = {
                 TextButton(
                     onClick = onDismissDelete,
-                    enabled = !uiState.isDeleting
+                    enabled = !uiState.isDeleting,
+                    modifier = Modifier.testTag("cancel_delete_button")
                 ) {
                     Text(
                         text = "Cancel",

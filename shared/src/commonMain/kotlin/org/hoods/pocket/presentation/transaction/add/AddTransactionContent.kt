@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.presentation.theme.PocketColors
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -99,6 +100,7 @@ fun AddTransactionContent(
                         )
                         .clickable { onTypeSelected(TransactionType.EXPENSE) }
                         .padding(horizontal = 24.dp, vertical = 8.dp)
+                        .testTag("type_toggle_expense")
                 ) {
                     Text(
                         text = "Expense",
@@ -118,6 +120,7 @@ fun AddTransactionContent(
                         )
                         .clickable { onTypeSelected(TransactionType.INCOME) }
                         .padding(horizontal = 24.dp, vertical = 8.dp)
+                        .testTag("type_toggle_income")
                 ) {
                     Text(
                         text = "Income",
@@ -180,7 +183,9 @@ fun AddTransactionContent(
                     prefix = {
                         Text("$", color = PocketColors.Primary, fontWeight = FontWeight.Bold)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("amount_input"),
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -209,7 +214,9 @@ fun AddTransactionContent(
                     placeholder = {
                         Text("Description (e.g. Whole Foods)", color = PocketColors.OnSurfaceVariant.copy(alpha = 0.6f))
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("description_input"),
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -266,7 +273,9 @@ fun AddTransactionContent(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("error_message")
             )
         }
 
@@ -286,7 +295,8 @@ fun AddTransactionContent(
             enabled = !uiState.isSaving,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp),
+                .height(52.dp)
+                .testTag("save_transaction_button"),
             shape = RoundedCornerShape(percent = 50),
             colors = ButtonDefaults.buttonColors(
                 containerColor = PocketColors.Primary,

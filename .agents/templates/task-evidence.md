@@ -36,7 +36,49 @@
   BUILD SUCCESSFUL
   ```
 
-## 4. Verification Results
+## 4. Automated UI-Flow Test Coverage
+
+| Scenario | Test Class & Method | Result | Description |
+| :--- | :--- | :--- | :--- |
+| **Valid Add** | `[AddTransactionUiTest.validAdd_...()]` | PASS | Valid input saves to repository and triggers completion. |
+| **Invalid Input** | `[AddTransactionUiTest.invalidInput_...()]` | PASS | Blank/zero inputs show validation errors without saving. |
+| **Edit Without Duplication** | `[EditTransactionUiTest.editWithoutDuplication_...()]` | PASS | Editing existing record updates in place without inserting duplicates. |
+| **Cancel Deletion** | `[EditTransactionUiTest.cancelDeletion_...()]` | PASS | Cancelling delete confirmation leaves record intact in repository. |
+| **Confirmed Deletion** | `[EditTransactionUiTest.confirmedDeletion_...()]` | PASS | Confirming delete permanently removes record from repository. |
+| **Cross-Screen Journey** | `[TransactionJourneyUiTest.fullJourney_...()]` | PASS | End-to-end multi-screen flow across List -> Add -> Edit -> Delete. |
+
+### UI-Flow Execution Commands & Logs
+```bash
+./gradlew :shared:jvmTest --tests "org.hoods.pocket.presentation.transaction.add.AddTransactionUiTest"
+./gradlew :shared:jvmTest --tests "org.hoods.pocket.presentation.transaction.edit.EditTransactionUiTest"
+./gradlew :shared:jvmTest --tests "org.hoods.pocket.presentation.transaction.TransactionJourneyUiTest"
+```
+
+## 5. Visual-Validation Evidence
+
+### Captured Artifacts (from Build Output to Durable Evidence)
+- **Build Output Directory**: `build/reports/visual-validation/screenshots/`
+- **Approved Durable Evidence**: `docs/evidence/screenshots/`
+  - `[screen-1.png]`
+  - `[screen-2.png]`
+
+### Visual Comparison Against Design References
+| Captured Screen | Reference Mockup (`docs/design/reference/`) | Visual Review Summary |
+| :--- | :--- | :--- |
+| `[screen-1.png]` | `[pocket-budget-desktop-design/...png]` | Token alignment (colors, typography, shapes), hierarchy, and spacing verified. |
+| `[screen-2.png]` | `[pocket-budget-mobile-design/...png]` | Responsive alignment and layout hierarchy verified. |
+
+### Design Token Alignment
+- **Colors**: `PocketColors.Primary` (`#005136`), `Surface` (`#EEFDF2`), `Container` (`#FFFFFF`), `Income` (`#059669`), `Expense` (`#BA1A1A`).
+- **Typography**: Display/Headline semi-bold, body regular, hero numeric displays matching Work Sans scales.
+- **Shapes**: `16.dp` rounded cards/inputs, capsule full-radius buttons and segmented toggles.
+- **Spacing**: 8pt grid, 72dp item heights with 40dp badges.
+
+### Contract-Driven Deviations
+- **[Component Name]**: [e.g. Category selector visible in mockup omitted per contract Section 3].
+- **[Component Name]**: [e.g. Date picker visible in mockup omitted per contract Section 3; read-only timestamp indicator used].
+
+## 6. Verification Results
 - **Verification Gate Command**:
   ```bash
   ./scripts/verify.sh
@@ -51,31 +93,27 @@
   iOS Simulator Tests (:shared:iosSimulatorArm64Test) : NOT RUN (Target requires ARM64, host is macOS x86_64)
   ```
 
-## 5. Manual Verification Journey
-<!-- Step-by-step user journey verifying end-to-end functionality across platforms -->
-1. **Launch App**: Launch on target platform (e.g. `./gradlew :desktopApp:run` or Android device/emulator).
-2. **Action 1**: [e.g. Enter Income transaction with description and amount, click Save].
-3. **Observation 1**: [e.g. Transaction appears immediately in transaction list with positive green amount].
-4. **Action 2**: [e.g. Enter Expense transaction with description and amount, click Save].
-5. **Observation 2**: [e.g. Transaction appears in transaction list with signed expense amount].
-6. **Restart / Persistence**: [e.g. Close process, relaunch app, confirm transactions remain persisted in local Room database].
+## 7. Execution Command Log
+<!-- Complete log of every command actually run during verification -->
+- `git diff --check`: `PASS`
+- `./gradlew :shared:jvmTest`: `PASS`
+- `./gradlew :shared:testAndroidHostTest`: `PASS`
+- `./gradlew :desktopApp:compileKotlin`: `PASS`
+- `./gradlew :androidApp:assembleDebug`: `PASS`
+- `./gradlew :shared:iosSimulatorArm64Test`: `NOT RUN` (host platform is macOS x86_64, whereas the iOS simulator target requires ARM64).
 
-## 6. Limitations & Unverified Targets
+## 8. Limitations & Unverified Targets
 <!-- Truthful statement of environment limitations, disabled targets, or manual test constraints -->
 - **iOS Simulator Tests**: `NOT RUN` (host platform is macOS x86_64, whereas the iOS simulator target requires ARM64).
-- 
 
-## 7. Final Checkpoint
-- **Commit Hash**: `[e.g. 0f2f4f7]`
+## 9. Final Checkpoint
+- **Commit Hash**: `[e.g. 7ff5008]`
 - **Commit Message**:
   ```text
   [type(scope): summary]
 
   - bullet point detail
   ```
-- **Files in Checkpoint**:
-  - `[path/to/file1]`
-  - `[path/to/file2]`
 - **Final Git Status**:
   ```text
   On branch main

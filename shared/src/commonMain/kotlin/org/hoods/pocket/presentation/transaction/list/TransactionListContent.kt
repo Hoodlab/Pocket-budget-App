@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.presentation.theme.PocketColors
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import kotlin.time.Instant
 
@@ -106,7 +107,8 @@ fun TransactionListContent(
             onClick = onAddTransactionClick,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(24.dp),
+                .padding(24.dp)
+                .testTag("add_transaction_fab"),
             containerColor = PocketColors.Primary,
             contentColor = PocketColors.OnPrimary,
             shape = RoundedCornerShape(16.dp)

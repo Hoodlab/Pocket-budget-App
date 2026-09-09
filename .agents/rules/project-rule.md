@@ -42,6 +42,13 @@ trigger: always_on
 - Do not add or change Gradle dependencies without explicit approval.
 - Do not commit or push unless explicitly requested.
 
+## UI quality gate
+
+- Automated UI tests must cover key user journeys and edge cases (add, invalid input, edit, cancel/confirm deletion, cross-screen navigation).
+- UI tests use stable semantic test tags only where needed, avoiding brittle layout dependencies.
+- Visual-validation evidence must be captured and visually reviewed against reference designs in `docs/design/reference/` before completing a UI slice. Automated screenshots write to build outputs first, with only approved images added to durable evidence.
+- Record every verification command that runs; mark unsupported targets as NOT RUN with the real reason.
+
 ## Checkpoints
 
 - Use the `verify-and-checkpoint` workflow before creating a commit.
