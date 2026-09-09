@@ -9,6 +9,7 @@
 - The app asks for confirmation before deletion.
 - Cancelling leaves the transaction unchanged.
 - Confirming removes the transaction and returns to the list.
+- A user can choose the date for a new or existing transaction, browse transactions by month, and return to the current month. Transactions appear only in the month that contains their selected date.
 
 ## 2. In-Scope Behavior
 - **`TransactionRepository` Contract:** Shared repository interface defining operations to save, update, delete, and reactively observe transactions.
@@ -24,6 +25,13 @@
 - **Deletion with Confirmation:** Deletion trigger on the edit screen presenting a confirmation dialog before permanent removal; cancelling leaves the transaction untouched, confirming deletes it and navigates back to the list.
 - **Persistence Across Restarts:** Stored transactions and updates are retained locally in SQLite/Room across app launches.
 - **Typed Navigation:** Typed Compose navigation handling transitions between transaction list, add transaction, and edit transaction screens.
+- **Default Transaction Date:** New transactions default to today using `kotlin.time.Instant`.
+- **Date Selection:** Users can choose a date when adding or editing a transaction.
+- **Stored-Date Editing:** Editing pre-fills the transaction’s existing saved date.
+- **Month Browsing:** Users can move to the previous or next month from the transaction list.
+- **Current-Month Return:** Users can return directly to the current month after browsing another period.
+- **Monthly Transaction List:** The list displays only transactions whose date belongs to the selected month and year.
+- **Date-Based Movement:** Updating a transaction’s date moves it to the appropriate month in the list.
 
 ## 3. Explicit Exclusions
 - Budgets, budget allocation, and progress tracking.

@@ -47,6 +47,9 @@ fun EditTransactionScreen(
             onConfirmDelete = viewModel::confirmDelete,
             onSaveClick = viewModel::saveChanges,
             onDismiss = onDismiss,
+            onOpenDatePicker = viewModel::onOpenDatePicker,
+            onDismissDatePicker = viewModel::onDismissDatePicker,
+            onDateSelected = viewModel::onDateSelected,
             modifier = modifier
         )
     }

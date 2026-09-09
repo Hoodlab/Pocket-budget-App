@@ -3,6 +3,7 @@ package org.hoods.pocket.domain.usecase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.repository.TransactionRepository
 
@@ -13,6 +14,14 @@ class FakeTransactionRepository : TransactionRepository {
     var failureMessage: String = "Database error"
 
     override fun getTransactions(): Flow<List<Transaction>> = transactionsFlow.asStateFlow()
+
+    override fun getTransactionsByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<List<Transaction>> =
+        transactionsFlow.map { list ->
+            list.filter {
+                val epoch = it.date.toEpochMilliseconds()
+                epoch in startEpochMillis until endEpochMillis
+            }.sortedByDescending { it.date.toEpochMilliseconds() }
+        }
 
     override suspend fun insertTransaction(transaction: Transaction) {
         if (shouldFail) throw IllegalStateException(failureMessage)

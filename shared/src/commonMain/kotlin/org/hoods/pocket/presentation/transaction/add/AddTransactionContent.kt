@@ -21,24 +21,31 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.presentation.theme.PocketColors
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.tooling.preview.Preview
+import kotlin.time.Instant
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionContent(
     uiState: AddTransactionUiState,
@@ -47,6 +54,9 @@ fun AddTransactionContent(
     onAmountChanged: (String) -> Unit,
     onSaveClick: () -> Unit,
     onDismiss: (() -> Unit)?,
+    onOpenDatePicker: () -> Unit = {},
+    onDismissDatePicker: () -> Unit = {},
+    onDateSelected: (Instant) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -99,15 +109,16 @@ fun AddTransactionContent(
                             else Color.Transparent
                         )
                         .clickable { onTypeSelected(TransactionType.EXPENSE) }
-                        .padding(horizontal = 24.dp, vertical = 8.dp)
-                        .testTag("type_toggle_expense")
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .testTag("type_toggle_expense"),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Expense",
                         color = if (uiState.selectedType == TransactionType.EXPENSE) PocketColors.OnPrimary
                         else PocketColors.OnSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
 
@@ -119,46 +130,47 @@ fun AddTransactionContent(
                             else Color.Transparent
                         )
                         .clickable { onTypeSelected(TransactionType.INCOME) }
-                        .padding(horizontal = 24.dp, vertical = 8.dp)
-                        .testTag("type_toggle_income")
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .testTag("type_toggle_income"),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Income",
                         color = if (uiState.selectedType == TransactionType.INCOME) PocketColors.OnPrimary
                         else PocketColors.OnSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
 
+            // Balancing placeholder for layout symmetry
             Spacer(modifier = Modifier.size(40.dp))
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         // Hero Amount Display
-        val displayAmount = if (uiState.amountText.isBlank()) "$0.00" else {
-            val trimmed = uiState.amountText.trim().removePrefix("$")
-            "$$trimmed"
-        }
+        val heroPrefix = if (uiState.selectedType == TransactionType.EXPENSE) "-" else "+"
+        val heroColor = if (uiState.selectedType == TransactionType.EXPENSE) PocketColors.Expense else PocketColors.Income
+        val displayAmount = uiState.amountText.ifBlank { "0.00" }
+
         Text(
-            text = displayAmount,
+            text = "$heroPrefix$$displayAmount",
             fontSize = 44.sp,
             fontWeight = FontWeight.Bold,
-            color = PocketColors.Primary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+            color = heroColor,
+            textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Form Card Container
+        // Form Fields Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = PocketColors.SurfaceContainerLowest),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -229,7 +241,7 @@ fun AddTransactionContent(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Date Indicator (Read-only per active contract)
+                // Date Selection Row
                 Text(
                     text = "DATE",
                     fontSize = 12.sp,
@@ -243,22 +255,25 @@ fun AddTransactionContent(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(PocketColors.SurfaceContainer)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .clickable { onOpenDatePicker() }
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .testTag("date_picker_button"),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "📅 ", fontSize = 16.sp)
                         Text(
-                            text = "Today",
+                            text = uiState.dateString,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
                             color = PocketColors.OnSurface
                         )
                     }
                     Text(
-                        text = "Current timestamp",
-                        fontSize = 12.sp,
+                        text = "›",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
                         color = PocketColors.OnSurfaceVariant
                     )
                 }
@@ -275,19 +290,18 @@ fun AddTransactionContent(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
                     .testTag("error_message")
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
-        // Save Action Button
-        val buttonText = if (uiState.isSaving) {
-            "Saving..."
-        } else if (uiState.selectedType == TransactionType.EXPENSE) {
-            "Save Transaction"
+        // Save Button
+        val buttonLabel = if (uiState.selectedType == TransactionType.EXPENSE) {
+            if (uiState.isSaving) "Saving..." else "Save Transaction"
         } else {
-            "Save Income"
+            if (uiState.isSaving) "Saving..." else "Save Income"
         }
 
         Button(
@@ -295,20 +309,50 @@ fun AddTransactionContent(
             enabled = !uiState.isSaving,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(56.dp)
                 .testTag("save_transaction_button"),
-            shape = RoundedCornerShape(percent = 50),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PocketColors.Primary,
-                contentColor = PocketColors.OnPrimary,
-                disabledContainerColor = PocketColors.Primary.copy(alpha = 0.5f),
-                disabledContentColor = PocketColors.OnPrimary.copy(alpha = 0.7f)
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = PocketColors.Primary),
+            shape = RoundedCornerShape(percent = 50)
         ) {
             Text(
-                text = buttonText,
+                text = buttonLabel,
+                color = PocketColors.OnPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
+            )
+        }
+    }
+
+    if (uiState.showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = uiState.selectedDate.toEpochMilliseconds()
+        )
+        DatePickerDialog(
+            onDismissRequest = onDismissDatePicker,
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onDateSelected(Instant.fromEpochMilliseconds(millis))
+                        }
+                    },
+                    modifier = Modifier.testTag("date_picker_confirm_button")
+                ) {
+                    Text("OK", color = PocketColors.Primary, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onDismissDatePicker,
+                    modifier = Modifier.testTag("date_picker_cancel_button")
+                ) {
+                    Text("Cancel", color = PocketColors.OnSurfaceVariant)
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                modifier = Modifier.testTag("date_picker")
             )
         }
     }
@@ -320,13 +364,17 @@ fun AddTransactionContentPreview() {
     AddTransactionContent(
         uiState = AddTransactionUiState(
             selectedType = TransactionType.EXPENSE,
-            description = "Dinner with friends",
-            amountText = "45.50"
+            description = "Groceries",
+            amountText = "45.50",
+            dateString = "Today, Sep 9, 2026"
         ),
         onTypeSelected = {},
         onDescriptionChanged = {},
         onAmountChanged = {},
         onSaveClick = {},
-        onDismiss = {}
+        onDismiss = {},
+        onOpenDatePicker = {},
+        onDismissDatePicker = {},
+        onDateSelected = {}
     )
 }

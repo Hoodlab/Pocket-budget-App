@@ -12,22 +12,31 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.usecase.AddTransactionUseCase
+import org.hoods.pocket.domain.util.DateUtils
 import org.hoods.pocket.domain.util.MoneyParser
 
 @OptIn(ExperimentalUuidApi::class)
 class AddTransactionViewModel(
     private val addTransactionUseCase: AddTransactionUseCase,
+    initialDate: Instant? = null,
     coroutineScope: CoroutineScope? = null
 ) : ViewModel() {
 
     private val scope = coroutineScope ?: viewModelScope
 
-    private val _uiState = MutableStateFlow(AddTransactionUiState())
+    private val now = initialDate ?: Clock.System.now()
+    private val _uiState = MutableStateFlow(
+        AddTransactionUiState(
+            selectedDate = now,
+            dateString = DateUtils.formatDate(now)
+        )
+    )
     val uiState: StateFlow<AddTransactionUiState> = _uiState.asStateFlow()
 
     private val _events = Channel<AddTransactionEvent>(Channel.BUFFERED)
@@ -45,6 +54,24 @@ class AddTransactionViewModel(
         if (amountText.all { it.isDigit() || it == '.' || it == '$' }) {
             val cleaned = amountText.removePrefix("$").trim()
             _uiState.update { it.copy(amountText = cleaned, errorMessage = null) }
+        }
+    }
+
+    fun onOpenDatePicker() {
+        _uiState.update { it.copy(showDatePicker = true) }
+    }
+
+    fun onDismissDatePicker() {
+        _uiState.update { it.copy(showDatePicker = false) }
+    }
+
+    fun onDateSelected(date: Instant) {
+        _uiState.update {
+            it.copy(
+                selectedDate = date,
+                dateString = DateUtils.formatDate(date),
+                showDatePicker = false
+            )
         }
     }
 
@@ -68,7 +95,7 @@ class AddTransactionViewModel(
             description = currentState.description.trim(),
             amount = cents,
             type = currentState.selectedType,
-            date = Clock.System.now()
+            date = currentState.selectedDate
         )
 
         _uiState.update { it.copy(isSaving = true) }

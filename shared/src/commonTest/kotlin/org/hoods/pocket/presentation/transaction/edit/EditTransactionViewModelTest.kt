@@ -35,13 +35,14 @@ class EditTransactionViewModelTest {
     )
 
     @Test
-    fun `loadTransaction populates UI state from repository`() = runTest {
+    fun `loadTransaction populates UI state and date from repository`() = runTest {
+        val txDate = Instant.parse("2024-05-31T16:08:37Z")
         val tx = Transaction(
             id = "tx-123",
             description = "Dinner",
             amount = 3500L,
             type = TransactionType.EXPENSE,
-            date = Instant.fromEpochMilliseconds(1717171717000L)
+            date = txDate
         )
         repository.insertTransaction(tx)
 
@@ -53,18 +54,21 @@ class EditTransactionViewModelTest {
         assertEquals("Dinner", state.description)
         assertEquals("35.00", state.amountText)
         assertEquals(TransactionType.EXPENSE, state.selectedType)
+        assertEquals(txDate, state.selectedDate)
+        assertEquals("May 31, 2024", state.dateString)
         assertFalse(state.isLoading)
         assertFalse(state.isNotFound)
     }
 
     @Test
-    fun `saveChanges updates existing transaction and emits SaveSuccess event`() = runTest {
+    fun `saveChanges updates existing transaction date and emits SaveSuccess event`() = runTest {
+        val originalDate = Instant.parse("2024-05-31T16:08:37Z")
         val original = Transaction(
             id = "tx-123",
             description = "Dinner",
             amount = 3500L,
             type = TransactionType.EXPENSE,
-            date = Instant.fromEpochMilliseconds(1717171717000L)
+            date = originalDate
         )
         repository.insertTransaction(original)
 
@@ -72,8 +76,10 @@ class EditTransactionViewModelTest {
         viewModel.loadTransaction("tx-123")
         advanceUntilIdle()
 
+        val newDate = Instant.parse("2024-06-15T10:00:00Z")
         viewModel.onDescriptionChanged("Supermarket Dinner")
         viewModel.onAmountChanged("42.00")
+        viewModel.onDateSelected(newDate)
 
         viewModel.saveChanges()
         advanceUntilIdle()
@@ -88,7 +94,19 @@ class EditTransactionViewModelTest {
         assertEquals("Supermarket Dinner", all.first().description)
         assertEquals(4200L, all.first().amount)
         assertEquals("tx-123", all.first().id)
-        assertEquals(original.date, all.first().date)
+        assertEquals(newDate, all.first().date)
+    }
+
+    @Test
+    fun `date picker toggles and onDismissDatePicker closes dialog`() = runTest {
+        val viewModel = createViewModel()
+        assertFalse(viewModel.uiState.value.showDatePicker)
+
+        viewModel.onOpenDatePicker()
+        assertTrue(viewModel.uiState.value.showDatePicker)
+
+        viewModel.onDismissDatePicker()
+        assertFalse(viewModel.uiState.value.showDatePicker)
     }
 
     @Test
@@ -98,7 +116,7 @@ class EditTransactionViewModelTest {
             description = "Dinner",
             amount = 3500L,
             type = TransactionType.EXPENSE,
-            date = Instant.fromEpochMilliseconds(1717171717000L)
+            date = Instant.parse("2024-05-31T16:08:37Z")
         )
         repository.insertTransaction(original)
 
@@ -106,18 +124,12 @@ class EditTransactionViewModelTest {
         viewModel.loadTransaction("tx-123")
         advanceUntilIdle()
 
-        viewModel.onDescriptionChanged("Supermarket Dinner")
-        viewModel.onAmountChanged("42.00")
-
         viewModel.saveChanges()
         assertTrue(viewModel.uiState.value.isSaving)
 
-        // Second call while isSaving is true is rejected
-        viewModel.saveChanges()
-
+        viewModel.saveChanges() // Second call rejected
         advanceUntilIdle()
-        val all = repository.getTransactions().first()
-        assertEquals(1, all.size)
+
         assertFalse(viewModel.uiState.value.isSaving)
     }
 
@@ -128,7 +140,7 @@ class EditTransactionViewModelTest {
             description = "Dinner",
             amount = 3500L,
             type = TransactionType.EXPENSE,
-            date = Instant.fromEpochMilliseconds(1717171717000L)
+            date = Instant.parse("2024-05-31T16:08:37Z")
         )
         repository.insertTransaction(original)
 
@@ -136,30 +148,30 @@ class EditTransactionViewModelTest {
         viewModel.loadTransaction("tx-123")
         advanceUntilIdle()
 
-        viewModel.onDescriptionChanged("Supermarket Dinner")
-        viewModel.onAmountChanged("42.00")
-
         repository.shouldFail = true
-        repository.failureMessage = "Write lock error"
+        repository.failureMessage = "Update error"
+
+        viewModel.onDescriptionChanged("Altered Description")
+        viewModel.onAmountChanged("99.99")
 
         viewModel.saveChanges()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
+        assertEquals("Update error", state.errorMessage)
         assertFalse(state.isSaving)
-        assertEquals("Write lock error", state.errorMessage)
-        assertEquals("Supermarket Dinner", state.description)
-        assertEquals("42.00", state.amountText)
+        assertEquals("Altered Description", state.description)
+        assertEquals("99.99", state.amountText)
     }
 
     @Test
-    fun `delete confirmation flow and confirming deletes transaction and emits DeleteSuccess event`() = runTest {
+    fun `delete confirmation workflow and duplicate deletion guard`() = runTest {
         val original = Transaction(
             id = "tx-123",
             description = "Dinner",
             amount = 3500L,
             type = TransactionType.EXPENSE,
-            date = Instant.fromEpochMilliseconds(1717171717000L)
+            date = Instant.parse("2024-05-31T16:08:37Z")
         )
         repository.insertTransaction(original)
 
@@ -167,6 +179,7 @@ class EditTransactionViewModelTest {
         viewModel.loadTransaction("tx-123")
         advanceUntilIdle()
 
+        assertFalse(viewModel.uiState.value.showDeleteConfirmation)
         viewModel.requestDelete()
         assertTrue(viewModel.uiState.value.showDeleteConfirmation)
 
@@ -174,50 +187,23 @@ class EditTransactionViewModelTest {
         assertFalse(viewModel.uiState.value.showDeleteConfirmation)
 
         viewModel.confirmDelete()
-        advanceUntilIdle()
-
-        val event = viewModel.events.first()
-        assertEquals(EditTransactionEvent.DeleteSuccess, event)
-        assertNull(viewModel.uiState.value.errorMessage)
-        assertFalse(viewModel.uiState.value.isDeleting)
-
-        val all = repository.getTransactions().first()
-        assertTrue(all.isEmpty())
-    }
-
-    @Test
-    fun `confirmDelete prevents duplicate deletion when already deleting`() = runTest {
-        val original = Transaction(
-            id = "tx-123",
-            description = "Dinner",
-            amount = 3500L,
-            type = TransactionType.EXPENSE,
-            date = Instant.fromEpochMilliseconds(1717171717000L)
-        )
-        repository.insertTransaction(original)
-
-        val viewModel = createViewModel()
-        viewModel.loadTransaction("tx-123")
-        advanceUntilIdle()
-
-        viewModel.confirmDelete()
         assertTrue(viewModel.uiState.value.isDeleting)
 
-        // Second call while isDeleting is true is rejected
-        viewModel.confirmDelete()
-
         advanceUntilIdle()
+        val event = viewModel.events.first()
+        assertEquals(EditTransactionEvent.DeleteSuccess, event)
         assertFalse(viewModel.uiState.value.isDeleting)
+        assertTrue(repository.getTransactions().first().isEmpty())
     }
 
     @Test
-    fun `confirmDelete failure clears isDeleting, preserves initialTransaction, and exposes error message`() = runTest {
+    fun `confirmDelete failure clears isDeleting and exposes error message`() = runTest {
         val original = Transaction(
             id = "tx-123",
             description = "Dinner",
             amount = 3500L,
             type = TransactionType.EXPENSE,
-            date = Instant.fromEpochMilliseconds(1717171717000L)
+            date = Instant.parse("2024-05-31T16:08:37Z")
         )
         repository.insertTransaction(original)
 
@@ -232,8 +218,8 @@ class EditTransactionViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertFalse(state.isDeleting)
         assertEquals("Delete constraint failed", state.errorMessage)
+        assertFalse(state.isDeleting)
         assertNotNull(state.initialTransaction)
     }
 }

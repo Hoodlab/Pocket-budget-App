@@ -18,6 +18,9 @@ fun TransactionListScreen(
         uiState = uiState,
         onAddTransactionClick = onAddTransactionClick,
         onTransactionClick = onTransactionClick,
+        onPreviousMonthClick = viewModel::onPreviousMonth,
+        onNextMonthClick = viewModel::onNextMonth,
+        onCurrentMonthClick = viewModel::onCurrentMonth,
         modifier = modifier
     )
 }

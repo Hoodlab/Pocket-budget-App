@@ -56,17 +56,29 @@
 
 ## 5. Visual-Validation Evidence
 
+<!-- When both mobile and desktop references exist, inspect both before implementation and capture, review, and record evidence for both supported viewport sizes. If one cannot run, record it as NOT RUN with the reason. -->
+
 ### Captured Artifacts (from Build Output to Durable Evidence)
 - **Build Output Directory**: `build/reports/visual-validation/screenshots/`
 - **Approved Durable Evidence**: `docs/evidence/screenshots/`
-  - `[screen-1.png]`
-  - `[screen-2.png]`
+  - Mobile:
+    - `[screen-mobile-1.png]`
+  - Desktop:
+    - `[screen-desktop-1.png]`
 
 ### Visual Comparison Against Design References
-| Captured Screen | Reference Mockup (`docs/design/reference/`) | Visual Review Summary |
+
+#### Mobile Viewport (e.g. 390x844 dp)
+| Captured Screen | Reference Mockup (`docs/design/reference/pocket-budget-mobile-design/`) | Visual Review Summary |
 | :--- | :--- | :--- |
-| `[screen-1.png]` | `[pocket-budget-desktop-design/...png]` | Token alignment (colors, typography, shapes), hierarchy, and spacing verified. |
-| `[screen-2.png]` | `[pocket-budget-mobile-design/...png]` | Responsive alignment and layout hierarchy verified. |
+| `[screen-mobile-1.png]` | `[pocket-budget-mobile-design/...png]` | Token adherence, typography scale, mobile card layout, and spacing verified. |
+
+#### Desktop Viewport (e.g. 1024x768 dp)
+| Captured Screen | Reference Mockup (`docs/design/reference/pocket-budget-desktop-design/`) | Visual Review Summary |
+| :--- | :--- | :--- |
+| `[screen-desktop-1.png]` | `[pocket-budget-desktop-design/...png]` | Token adherence, widescreen layout arrangement, hierarchy, and desktop responsiveness verified. |
+
+*(If a viewport cannot be captured or tested, record it as `NOT RUN` with the specific reason)*
 
 ### Design Token Alignment
 - **Colors**: `PocketColors.Primary` (`#005136`), `Surface` (`#EEFDF2`), `Container` (`#FFFFFF`), `Income` (`#059669`), `Expense` (`#BA1A1A`).

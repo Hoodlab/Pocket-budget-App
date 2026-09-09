@@ -25,6 +25,7 @@ trigger: always_on
 - Domain code must not depend on Room, SQLite, Compose, Android, iOS, or desktop APIs.
 - Repository contracts belong in the domain layer.
 - Room entities, DAOs, databases, and mappers belong in the data layer.
+- When a user-controlled filter applies to persisted data, the repository and database query must receive that filter. Do not load an unbounded stored collection and filter it in a ViewModel unless the contract explicitly justifies it.
 - Shared feature UI belongs in `presentation/<feature>/`; each independently navigable screen gets its own subpackage (`presentation/<feature>/<screen>/`), keeping the outer feature package as the boundary; shared theme belongs in `presentation/theme/`; typed routes and the navigation host belong in `navigation/`.
 - Platform source sets contain platform glue only. Business and presentation logic stay in `commonMain`.
 - Each screen has a `<Feature>ViewModel`, `<Feature>UiState`, `<Feature>Screen`, and `<Feature>Content`.
@@ -47,6 +48,7 @@ trigger: always_on
 - Automated UI tests must cover key user journeys and edge cases (add, invalid input, edit, cancel/confirm deletion, cross-screen navigation).
 - UI tests use stable semantic test tags only where needed, avoiding brittle layout dependencies.
 - Visual-validation evidence must be captured and visually reviewed against reference designs in `docs/design/reference/` before completing a UI slice. Automated screenshots write to build outputs first, with only approved images added to durable evidence.
+- When both mobile and desktop references exist, inspect both before implementation and capture, review, and record evidence for both supported viewport sizes. If one cannot run, record it as NOT RUN with the real reason.
 - Record every verification command that runs; mark unsupported targets as NOT RUN with the real reason.
 
 ## Checkpoints

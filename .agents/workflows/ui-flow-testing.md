@@ -12,7 +12,7 @@ Before writing tests or modifying UI:
 
 - Read the active implementation contract to confirm which interactive behaviors are in-scope and which are explicitly excluded.
 - Inspect the design system tokens in [`docs/design/reference/pocket-budget-design-system.md`](../../docs/design/reference/pocket-budget-design-system.md).
-- Inspect the visual screen mockups in [`docs/design/reference/pocket-budget-mobile-design/`](../../docs/design/reference/pocket-budget-mobile-design/) and [`docs/design/reference/pocket-budget-desktop-design/`](../../docs/design/reference/pocket-budget-desktop-design/) using `view_file`.
+- When both mobile and desktop references exist, inspect both before implementation in [`docs/design/reference/pocket-budget-mobile-design/`](../../docs/design/reference/pocket-budget-mobile-design/) and [`docs/design/reference/pocket-budget-desktop-design/`](../../docs/design/reference/pocket-budget-desktop-design/) using `view_file`.
 
 ## 2. Apply Stable Test Tags
 
@@ -44,10 +44,11 @@ Confirm all assertions pass cleanly on the JVM host before proceeding.
 
 Capture visual evidence and review against design references:
 
-1. **Automated Capture to Build Directory**:
+1. **Dual-Viewport Screenshot Capture to Build Directory**:
+   - When both mobile and desktop references exist, capture, review, and record evidence for both supported viewport sizes (e.g., mobile at 390x844 dp and desktop at 1024x768 dp). If one cannot run, record it as NOT RUN with the reason.
    - Automated screenshot capture must output images to `build/reports/visual-validation/screenshots/` first so normal test runs do not dirty tracked files.
 2. **Side-by-Side Visual Review**:
-   - Compare captured screens against the corresponding PNG mockups in `docs/design/reference/`.
+   - Compare captured screens against the corresponding PNG mockups in `docs/design/reference/` across both mobile and desktop viewports.
    - Verify design token adherence (colors, typography, shapes, spacing).
    - Document any intentional contract-driven deviations (e.g. excluded date pickers or category selectors).
 3. **Durable Evidence Selection**:

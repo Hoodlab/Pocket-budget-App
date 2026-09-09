@@ -11,6 +11,7 @@ import org.hoods.pocket.domain.repository.TransactionRepository
 import org.hoods.pocket.domain.usecase.AddTransactionUseCase
 import org.hoods.pocket.domain.usecase.DeleteTransactionUseCase
 import org.hoods.pocket.domain.usecase.GetTransactionByIdUseCase
+import org.hoods.pocket.domain.usecase.GetTransactionsByMonthUseCase
 import org.hoods.pocket.domain.usecase.GetTransactionsUseCase
 import org.hoods.pocket.domain.usecase.UpdateTransactionUseCase
 import org.hoods.pocket.navigation.PocketNavHost
@@ -41,13 +42,13 @@ fun PocketBudgetRoot(
     repository: TransactionRepository,
     modifier: Modifier = Modifier
 ) {
-    val getTransactionsUseCase = remember(repository) { GetTransactionsUseCase(repository) }
+    val getTransactionsByMonthUseCase = remember(repository) { GetTransactionsByMonthUseCase(repository) }
     val addTransactionUseCase = remember(repository) { AddTransactionUseCase(repository) }
     val updateTransactionUseCase = remember(repository) { UpdateTransactionUseCase(repository) }
     val deleteTransactionUseCase = remember(repository) { DeleteTransactionUseCase(repository) }
     val getTransactionByIdUseCase = remember(repository) { GetTransactionByIdUseCase(repository) }
 
-    val listViewModel = remember(getTransactionsUseCase) { TransactionListViewModel(getTransactionsUseCase) }
+    val listViewModel = remember(getTransactionsByMonthUseCase) { TransactionListViewModel(getTransactionsByMonthUseCase) }
 
     PocketNavHost(
         listViewModel = listViewModel,

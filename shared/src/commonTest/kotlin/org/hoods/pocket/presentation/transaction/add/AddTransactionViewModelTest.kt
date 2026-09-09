@@ -11,6 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -47,9 +48,14 @@ class AddTransactionViewModelTest {
     }
 
     @Test
-    fun `saveTransaction persists valid transaction and emits SaveSuccess event`() = runTest {
+    fun `saveTransaction persists valid transaction with selectedDate and emits SaveSuccess event`() = runTest {
         val repository = FakeTransactionRepository()
-        val viewModel = AddTransactionViewModel(AddTransactionUseCase(repository), coroutineScope = this)
+        val customDate = Instant.parse("2026-08-15T10:00:00Z")
+        val viewModel = AddTransactionViewModel(
+            addTransactionUseCase = AddTransactionUseCase(repository),
+            initialDate = customDate,
+            coroutineScope = this
+        )
 
         viewModel.onTypeSelected(TransactionType.EXPENSE)
         viewModel.onDescriptionChanged("Groceries")
@@ -68,6 +74,27 @@ class AddTransactionViewModelTest {
         assertEquals("Groceries", saved.first().description)
         assertEquals(4550L, saved.first().amount)
         assertEquals(TransactionType.EXPENSE, saved.first().type)
+        assertEquals(customDate, saved.first().date)
+    }
+
+    @Test
+    fun `date picker toggles and onDateSelected updates date and dateString`() = runTest {
+        val repository = FakeTransactionRepository()
+        val viewModel = AddTransactionViewModel(AddTransactionUseCase(repository), coroutineScope = this)
+
+        assertFalse(viewModel.uiState.value.showDatePicker)
+
+        viewModel.onOpenDatePicker()
+        assertTrue(viewModel.uiState.value.showDatePicker)
+
+        viewModel.onDismissDatePicker()
+        assertFalse(viewModel.uiState.value.showDatePicker)
+
+        val newDate = Instant.parse("2025-05-10T09:00:00Z")
+        viewModel.onDateSelected(newDate)
+        assertEquals(newDate, viewModel.uiState.value.selectedDate)
+        assertEquals("May 10, 2025", viewModel.uiState.value.dateString)
+        assertFalse(viewModel.uiState.value.showDatePicker)
     }
 
     @Test
@@ -105,8 +132,8 @@ class AddTransactionViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertFalse(state.isSaving)
         assertEquals("Disk full", state.errorMessage)
+        assertFalse(state.isSaving)
         assertEquals("Groceries", state.description)
         assertEquals("45.50", state.amountText)
         assertEquals(TransactionType.EXPENSE, state.selectedType)

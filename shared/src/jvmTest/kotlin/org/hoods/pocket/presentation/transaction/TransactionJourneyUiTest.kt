@@ -11,6 +11,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.hoods.pocket.PocketBudgetRoot
+import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.domain.usecase.FakeTransactionRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,6 +23,8 @@ class TransactionJourneyUiTest {
     @Test
     fun completeTransactionLifecycleJourney_addEditDeleteCrossScreen() = runComposeUiTest {
         val repository = FakeTransactionRepository()
+        val currentMonth = YearMonth.now()
+        val prevMonth = currentMonth.previous()
 
         setContent {
             PocketBudgetRoot(repository = repository)
@@ -29,24 +32,40 @@ class TransactionJourneyUiTest {
 
         waitForIdle()
 
-        // 1. Initial State: Transaction List renders empty state
+        // 1. Initial State: Transaction List renders month header and empty state
         onNodeWithText("Transactions").assertIsDisplayed()
+        onNodeWithTag("selected_month_text").assertIsDisplayed()
+        onNodeWithText(currentMonth.format()).assertIsDisplayed()
         onNodeWithText("No transactions yet\nTap + to add one").assertIsDisplayed()
 
         // 2. Navigate: Tap FAB to open Add Transaction form
         onNodeWithTag("add_transaction_fab").performClick()
         waitForIdle()
 
-        // 3. Add Screen: Fill valid transaction details and submit
+        // 3. Add Screen: Default date is Today; fill details and submit
+        onNodeWithTag("date_picker_button").assertIsDisplayed()
+        onNodeWithText("Today", substring = true).assertIsDisplayed()
         onNodeWithTag("description_input").assertIsDisplayed()
         onNodeWithTag("description_input").performTextInput("Groceries")
         onNodeWithTag("amount_input").performTextInput("45.50")
         onNodeWithTag("save_transaction_button").performClick()
         waitForIdle()
 
-        // 4. Return to List: Verify added transaction appears
+        // 4. Return to List: Verify added transaction appears in current month
         onNodeWithText("Groceries").assertIsDisplayed()
         onNodeWithText("-$45.50").assertIsDisplayed()
+
+        // 5. Month Browsing: Navigate to previous month, verify filtering, and return to current
+        onNodeWithTag("previous_month_button").performClick()
+        waitForIdle()
+        onNodeWithText(prevMonth.format()).assertIsDisplayed()
+        onNodeWithText("Groceries").assertDoesNotExist()
+        onNodeWithTag("current_month_button").assertIsDisplayed()
+
+        onNodeWithTag("current_month_button").performClick()
+        waitForIdle()
+        onNodeWithText(currentMonth.format()).assertIsDisplayed()
+        onNodeWithText("Groceries").assertIsDisplayed()
 
         var txId = ""
         runTest {
@@ -55,11 +74,12 @@ class TransactionJourneyUiTest {
             txId = list.first().id
         }
 
-        // 5. Navigate to Edit: Tap the transaction item
+        // 6. Navigate to Edit: Tap the transaction item
         onNodeWithTag("transaction_item_$txId").performClick()
         waitForIdle()
 
-        // 6. Edit Screen: Verify pre-filled data, modify values, and save
+        // 7. Edit Screen: Verify pre-filled data & stored date, modify values, and save
+        onNodeWithTag("date_picker_button").assertIsDisplayed()
         onNodeWithTag("description_input").assertIsDisplayed()
         onNodeWithTag("description_input").performTextClearance()
         onNodeWithTag("description_input").performTextInput("Weekly Groceries")
@@ -70,7 +90,7 @@ class TransactionJourneyUiTest {
         onNodeWithTag("save_changes_button").performClick()
         waitForIdle()
 
-        // 7. Return to List: Verify updated description and amount, without duplicate records
+        // 8. Return to List: Verify updated description and amount, without duplicate records
         onNodeWithText("Weekly Groceries").assertIsDisplayed()
         onNodeWithText("-$52.00").assertIsDisplayed()
         runTest {
@@ -80,11 +100,11 @@ class TransactionJourneyUiTest {
             assertEquals(5200L, list.first().amount)
         }
 
-        // 8. Open Edit again for Deletion
+        // 9. Open Edit again for Deletion
         onNodeWithTag("transaction_item_$txId").performClick()
         waitForIdle()
 
-        // 9. Cancel Deletion Dialog: Verify transaction remains intact
+        // 10. Cancel Deletion Dialog: Verify transaction remains intact
         onNodeWithTag("delete_transaction_button").performClick()
         waitForIdle()
         onNodeWithText("Delete Transaction?").assertIsDisplayed()
@@ -92,13 +112,13 @@ class TransactionJourneyUiTest {
         waitForIdle()
         onNodeWithTag("confirm_delete_button").assertDoesNotExist()
 
-        // 10. Confirm Deletion: Verify transaction is removed and returns to empty list
+        // 11. Confirm Deletion: Verify transaction is removed and returns to empty list
         onNodeWithTag("delete_transaction_button").performClick()
         waitForIdle()
         onNodeWithTag("confirm_delete_button").performClick()
         waitForIdle()
 
-        // 11. Final List State: Verify empty state is rendered and repository is empty
+        // 12. Final List State: Verify empty state is rendered and repository is empty
         onNodeWithText("No transactions yet\nTap + to add one").assertIsDisplayed()
         runTest {
             val list = repository.getTransactions().first()

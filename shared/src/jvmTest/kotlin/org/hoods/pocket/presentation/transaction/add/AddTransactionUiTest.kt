@@ -107,4 +107,40 @@ class AddTransactionUiTest {
             assertTrue(repository.getTransactions().first().isEmpty())
         }
     }
+
+    @Test
+    fun dateSelection_defaultsToTodayAndOpensDatePicker() = runComposeUiTest {
+        val repository = FakeTransactionRepository()
+        val useCase = AddTransactionUseCase(repository)
+
+        setContent {
+            val viewModel = AddTransactionViewModel(useCase)
+            AddTransactionScreen(
+                viewModel = viewModel,
+                onSaveSuccess = {},
+                onDismiss = {}
+            )
+        }
+
+        waitForIdle()
+
+        // 1. Initial State: Date selector is visible and contains "Today"
+        onNodeWithTag("date_picker_button").assertIsDisplayed()
+        onNodeWithText("Today", substring = true).assertIsDisplayed()
+
+        // 2. Click date button to open DatePicker
+        onNodeWithTag("date_picker_button").performClick()
+        waitForIdle()
+
+        // 3. DatePicker is displayed
+        onNodeWithTag("date_picker").assertIsDisplayed()
+        onNodeWithTag("date_picker_confirm_button").assertIsDisplayed()
+        onNodeWithTag("date_picker_cancel_button").assertIsDisplayed()
+
+        // 4. Click Cancel to dismiss
+        onNodeWithTag("date_picker_cancel_button").performClick()
+        waitForIdle()
+
+        onNodeWithTag("date_picker").assertDoesNotExist()
+    }
 }

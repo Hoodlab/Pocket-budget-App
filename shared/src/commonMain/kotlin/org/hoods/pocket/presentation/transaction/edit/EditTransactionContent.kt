@@ -22,27 +22,33 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.presentation.theme.PocketColors
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.tooling.preview.Preview
+import kotlin.time.Clock
 import kotlin.time.Instant
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTransactionContent(
     uiState: EditTransactionUiState,
@@ -54,6 +60,9 @@ fun EditTransactionContent(
     onConfirmDelete: () -> Unit,
     onSaveClick: () -> Unit,
     onDismiss: () -> Unit,
+    onOpenDatePicker: () -> Unit = {},
+    onDismissDatePicker: () -> Unit = {},
+    onDateSelected: (Instant) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -64,7 +73,7 @@ fun EditTransactionContent(
             .padding(horizontal = 20.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top Navigation Row: Dismiss button, Segmented Type Pill, and Delete Icon Button
+        // Top Navigation Row: Dismiss button, Segmented Pill, and Delete Action
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -103,14 +112,15 @@ fun EditTransactionContent(
                         )
                         .clickable { onTypeSelected(TransactionType.EXPENSE) }
                         .padding(horizontal = 20.dp, vertical = 8.dp)
-                        .testTag("type_toggle_expense")
+                        .testTag("type_toggle_expense"),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Expense",
                         color = if (uiState.selectedType == TransactionType.EXPENSE) PocketColors.OnPrimary
                         else PocketColors.OnSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
 
@@ -123,59 +133,60 @@ fun EditTransactionContent(
                         )
                         .clickable { onTypeSelected(TransactionType.INCOME) }
                         .padding(horizontal = 20.dp, vertical = 8.dp)
-                        .testTag("type_toggle_income")
+                        .testTag("type_toggle_income"),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Income",
                         color = if (uiState.selectedType == TransactionType.INCOME) PocketColors.OnPrimary
                         else PocketColors.OnSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
 
-            // Delete Trigger Button
+            // Delete Action Button
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(PocketColors.SurfaceContainer)
-                    .clickable(enabled = !uiState.isSaving && !uiState.isDeleting) { onRequestDelete() }
+                    .clickable { onRequestDelete() }
                     .testTag("delete_transaction_button"),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "🗑",
+                    color = PocketColors.Expense,
                     fontSize = 16.sp
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         // Hero Amount Display
-        val displayAmount = if (uiState.amountText.isBlank()) "$0.00" else {
-            val trimmed = uiState.amountText.trim().removePrefix("$")
-            "$$trimmed"
-        }
+        val heroPrefix = if (uiState.selectedType == TransactionType.EXPENSE) "-" else "+"
+        val heroColor = if (uiState.selectedType == TransactionType.EXPENSE) PocketColors.Expense else PocketColors.Income
+        val displayAmount = uiState.amountText.ifBlank { "0.00" }
+
         Text(
-            text = displayAmount,
+            text = "$heroPrefix$$displayAmount",
             fontSize = 44.sp,
             fontWeight = FontWeight.Bold,
-            color = PocketColors.Primary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+            color = heroColor,
+            textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Form Card Container
+        // Form Fields Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = PocketColors.SurfaceContainerLowest),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -246,7 +257,7 @@ fun EditTransactionContent(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Date Display (Stored timestamp)
+                // Date Display & Selection
                 Text(
                     text = "DATE",
                     fontSize = 12.sp,
@@ -260,7 +271,9 @@ fun EditTransactionContent(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(PocketColors.SurfaceContainer)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .clickable { onOpenDatePicker() }
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .testTag("date_picker_button"),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -274,8 +287,9 @@ fun EditTransactionContent(
                         )
                     }
                     Text(
-                        text = "Stored date",
-                        fontSize = 12.sp,
+                        text = "›",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
                         color = PocketColors.OnSurfaceVariant
                     )
                 }
@@ -292,38 +306,69 @@ fun EditTransactionContent(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
                     .testTag("error_message")
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
-        // Save Changes Action Button
-        val saveButtonText = if (uiState.isSaving) "Saving..." else "Save Changes"
+        // Save Button
+        val saveLabel = if (uiState.isSaving) "Saving..." else "Save Changes"
+
         Button(
             onClick = onSaveClick,
             enabled = !uiState.isSaving && !uiState.isDeleting,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(56.dp)
                 .testTag("save_changes_button"),
-            shape = RoundedCornerShape(percent = 50),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PocketColors.Primary,
-                contentColor = PocketColors.OnPrimary,
-                disabledContainerColor = PocketColors.Primary.copy(alpha = 0.5f),
-                disabledContentColor = PocketColors.OnPrimary.copy(alpha = 0.7f)
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = PocketColors.Primary),
+            shape = RoundedCornerShape(percent = 50)
         ) {
             Text(
-                text = saveButtonText,
+                text = saveLabel,
+                color = PocketColors.OnPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
         }
     }
 
-    // Delete Confirmation Dialog
+    if (uiState.showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = (uiState.selectedDate ?: Clock.System.now()).toEpochMilliseconds()
+        )
+        DatePickerDialog(
+            onDismissRequest = onDismissDatePicker,
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            onDateSelected(Instant.fromEpochMilliseconds(millis))
+                        }
+                    },
+                    modifier = Modifier.testTag("date_picker_confirm_button")
+                ) {
+                    Text("OK", color = PocketColors.Primary, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onDismissDatePicker,
+                    modifier = Modifier.testTag("date_picker_cancel_button")
+                ) {
+                    Text("Cancel", color = PocketColors.OnSurfaceVariant)
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                modifier = Modifier.testTag("date_picker")
+            )
+        }
+    }
+
     if (uiState.showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = onDismissDelete,
@@ -331,51 +376,40 @@ fun EditTransactionContent(
                 Text(
                     text = "Delete Transaction?",
                     fontWeight = FontWeight.Bold,
-                    color = PocketColors.OnSurface,
-                    fontSize = 18.sp
+                    color = PocketColors.OnSurface
                 )
             },
             text = {
                 Text(
                     text = "Are you sure you want to delete this transaction? This action cannot be undone.",
-                    color = PocketColors.OnSurfaceVariant,
-                    fontSize = 14.sp
+                    color = PocketColors.OnSurfaceVariant
                 )
             },
             confirmButton = {
-                Button(
+                TextButton(
                     onClick = onConfirmDelete,
-                    enabled = !uiState.isDeleting && !uiState.isSaving,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PocketColors.Error,
-                        contentColor = Color.White,
-                        disabledContainerColor = PocketColors.Error.copy(alpha = 0.5f),
-                        disabledContentColor = Color.White.copy(alpha = 0.7f)
-                    ),
-                    shape = RoundedCornerShape(percent = 50),
                     modifier = Modifier.testTag("confirm_delete_button")
                 ) {
                     Text(
-                        text = if (uiState.isDeleting) "Deleting..." else "Delete",
-                        fontWeight = FontWeight.SemiBold
+                        text = "Delete",
+                        color = PocketColors.Expense,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = onDismissDelete,
-                    enabled = !uiState.isDeleting,
                     modifier = Modifier.testTag("cancel_delete_button")
                 ) {
                     Text(
                         text = "Cancel",
-                        color = PocketColors.OnSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold
+                        color = PocketColors.OnSurfaceVariant
                     )
                 }
             },
             containerColor = PocketColors.SurfaceContainerLowest,
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(20.dp)
         )
     }
 }
@@ -385,17 +419,10 @@ fun EditTransactionContent(
 fun EditTransactionContentPreview() {
     EditTransactionContent(
         uiState = EditTransactionUiState(
-            initialTransaction = Transaction(
-                id = "tx-123",
-                description = "Dinner with friends",
-                amount = 4550L,
-                type = TransactionType.EXPENSE,
-                date = Instant.fromEpochMilliseconds(1717171717000L)
-            ),
             selectedType = TransactionType.EXPENSE,
-            description = "Dinner with friends",
+            description = "Groceries",
             amountText = "45.50",
-            dateString = "2024-05-31",
+            dateString = "Sep 9, 2026",
             isLoading = false
         ),
         onTypeSelected = {},
@@ -405,6 +432,9 @@ fun EditTransactionContentPreview() {
         onDismissDelete = {},
         onConfirmDelete = {},
         onSaveClick = {},
-        onDismiss = {}
+        onDismiss = {},
+        onOpenDatePicker = {},
+        onDismissDatePicker = {},
+        onDateSelected = {}
     )
 }

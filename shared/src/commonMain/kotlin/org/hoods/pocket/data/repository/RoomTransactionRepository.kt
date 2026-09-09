@@ -27,6 +27,20 @@ class RoomTransactionRepository(
         }
     }
 
+    override fun getTransactionsByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<List<Transaction>> {
+        return dao.getTransactionsByDateRange(startEpochMillis, endEpochMillis).map { entities ->
+            entities.map { entity ->
+                Transaction(
+                    id = entity.id,
+                    description = entity.description,
+                    amount = entity.amount,
+                    type = TransactionType.valueOf(entity.type),
+                    date = Instant.fromEpochMilliseconds(entity.dateEpochMillis)
+                )
+            }
+        }
+    }
+
     override suspend fun insertTransaction(transaction: Transaction) {
         dao.insertTransaction(
             TransactionEntity(

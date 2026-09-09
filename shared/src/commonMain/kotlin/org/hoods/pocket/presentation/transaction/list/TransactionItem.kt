@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionType
+import org.hoods.pocket.domain.util.DateUtils
 import org.hoods.pocket.domain.util.MoneyParser
 import org.hoods.pocket.presentation.theme.PocketColors
 
@@ -34,7 +35,7 @@ fun TransactionItem(
 ) {
     val isIncome = transaction.type == TransactionType.INCOME
     val formattedAmount = MoneyParser.formatSignedAmount(transaction.amount, transaction.type)
-    val dateString = transaction.date.toString().substringBefore('T')
+    val dateString = DateUtils.formatShortDate(transaction.date)
     val typeLabel = if (isIncome) "Income" else "Expense"
 
     val baseModifier = modifier.testTag("transaction_item_${transaction.id}")

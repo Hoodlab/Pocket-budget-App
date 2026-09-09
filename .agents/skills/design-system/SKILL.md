@@ -36,6 +36,7 @@ Every UI implementation must combine two complementary sources located in `docs/
   - Screen layouts, padding, card arrangements, and header alignments.
   - Interactive states (segmented toggle states, focus indicators, button variants).
   - Responsive differences between handheld portrait mobile and widescreen desktop layouts.
+- **Dual-Viewport Requirement**: When both mobile and desktop references exist, inspect both before implementation and capture, review, and record evidence for both supported viewport sizes. If one cannot run, record it as NOT RUN with the reason.
 
 ---
 
@@ -53,7 +54,7 @@ flowchart TD
 ```
 
 1. **Read Design Tokens**: View [`pocket-budget-design-system.md`](file:///Users/apple/Documents/Agentic%20Engineering/budget-poket%20resources/pocket-budget/docs/design/reference/pocket-budget-design-system.md) to extract exact colors, typography styles, spacing, and radius tokens for the target screen.
-2. **Inspect Mockup Images**: Call `view_file` on the corresponding mobile and desktop PNG files to inspect structural layout, visual hierarchy, and element relationships.
+2. **Inspect Mockup Images**: When both mobile and desktop references exist, call `view_file` on both sets of PNG files to inspect structural layout, visual hierarchy, responsive differences, and element relationships.
 3. **Cross-Reference Contract**: Check the active implementation contract (e.g., `.agents/contracts/add-and-keep-transaction.md`) to verify which visual elements are in-scope and which are explicitly excluded.
 4. **Map to Compose Tokens**: Translate the formal tokens directly into Compose primitives (`Color(0xFF...)`, `TextStyle(...)`, `RoundedCornerShape(...)`, `Modifier.padding(...)`).
 5. **Report Deviations**: Explicitly document intentional contract-driven deviations in the implementation plan and walkthrough.
@@ -150,7 +151,8 @@ Mockups frequently illustrate features planned for subsequent phases. Always adh
 Before committing any UI code:
 
 - [ ] Inspected [`pocket-budget-design-system.md`](file:///Users/apple/Documents/Agentic%20Engineering/budget-poket%20resources/pocket-budget/docs/design/reference/pocket-budget-design-system.md) for exact color hexes, typography specs, radiuses, and spacing.
-- [ ] Viewed relevant mobile & desktop PNG mockups with `view_file` to observe screen layout and interactive states.
+- [ ] When both mobile and desktop references exist, inspected both before implementation via `view_file` to observe screen layout, interactive states, and responsive differences.
+- [ ] Captured, reviewed, and recorded visual evidence for both supported viewport sizes (mobile and desktop), or recorded as NOT RUN with the reason.
 - [ ] Verified all inputs and actions match the active implementation contract.
 - [ ] Ensured monetary amounts convert directly between text and `Long` integer cents (strictly no `Double` or `Float`).
 - [ ] Documented any intentional deviations between mockups and the contract.

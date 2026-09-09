@@ -16,7 +16,9 @@ import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.usecase.DeleteTransactionUseCase
 import org.hoods.pocket.domain.usecase.GetTransactionByIdUseCase
 import org.hoods.pocket.domain.usecase.UpdateTransactionUseCase
+import org.hoods.pocket.domain.util.DateUtils
 import org.hoods.pocket.domain.util.MoneyParser
+import kotlin.time.Instant
 
 class EditTransactionViewModel(
     private val getTransactionByIdUseCase: GetTransactionByIdUseCase,
@@ -44,7 +46,8 @@ class EditTransactionViewModel(
                         selectedType = transaction.type,
                         description = transaction.description,
                         amountText = MoneyParser.formatCentsToAmount(transaction.amount),
-                        dateString = transaction.date.toString().substringBefore('T'),
+                        selectedDate = transaction.date,
+                        dateString = DateUtils.formatDate(transaction.date),
                         errorMessage = null,
                         isLoading = false,
                         isNotFound = false
@@ -76,6 +79,24 @@ class EditTransactionViewModel(
         }
     }
 
+    fun onOpenDatePicker() {
+        _uiState.update { it.copy(showDatePicker = true) }
+    }
+
+    fun onDismissDatePicker() {
+        _uiState.update { it.copy(showDatePicker = false) }
+    }
+
+    fun onDateSelected(date: Instant) {
+        _uiState.update {
+            it.copy(
+                selectedDate = date,
+                dateString = DateUtils.formatDate(date),
+                showDatePicker = false
+            )
+        }
+    }
+
     fun requestDelete() {
         _uiState.update { it.copy(showDeleteConfirmation = true) }
     }
@@ -103,7 +124,8 @@ class EditTransactionViewModel(
         val updatedTransaction = original.copy(
             description = currentState.description.trim(),
             amount = cents,
-            type = currentState.selectedType
+            type = currentState.selectedType,
+            date = currentState.selectedDate ?: original.date
         )
 
         _uiState.update { it.copy(isSaving = true) }

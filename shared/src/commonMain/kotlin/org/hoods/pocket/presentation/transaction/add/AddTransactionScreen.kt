@@ -30,6 +30,9 @@ fun AddTransactionScreen(
         onAmountChanged = viewModel::onAmountChanged,
         onSaveClick = viewModel::saveTransaction,
         onDismiss = onDismiss,
+        onOpenDatePicker = viewModel::onOpenDatePicker,
+        onDismissDatePicker = viewModel::onDismissDatePicker,
+        onDateSelected = viewModel::onDateSelected,
         modifier = modifier
     )
 }

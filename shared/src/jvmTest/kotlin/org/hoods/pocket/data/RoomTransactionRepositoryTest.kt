@@ -187,4 +187,59 @@ class RoomTransactionRepositoryTest {
         val notFound = repository.getTransactionById("non-existent")
         assertEquals(null, notFound)
     }
+
+    @Test
+    fun getTransactionsByDateRange_returnsOnlyTransactionsInRangeOrderedDescending() = runTest {
+        val startInstant = Instant.parse("2026-08-01T00:00:00Z")
+        val endInstant = Instant.parse("2026-09-01T00:00:00Z")
+
+        val txBefore = Transaction(
+            id = "tx-before",
+            description = "July Transaction",
+            amount = 1000L,
+            type = TransactionType.EXPENSE,
+            date = Instant.parse("2026-07-31T23:59:59Z")
+        )
+        val txStart = Transaction(
+            id = "tx-start",
+            description = "August Start Boundary",
+            amount = 2000L,
+            type = TransactionType.INCOME,
+            date = Instant.parse("2026-08-01T00:00:00Z")
+        )
+        val txMid = Transaction(
+            id = "tx-mid",
+            description = "August Mid Month",
+            amount = 3000L,
+            type = TransactionType.EXPENSE,
+            date = Instant.parse("2026-08-15T12:00:00Z")
+        )
+        val txEnd = Transaction(
+            id = "tx-end",
+            description = "September Start Boundary",
+            amount = 4000L,
+            type = TransactionType.EXPENSE,
+            date = Instant.parse("2026-09-01T00:00:00Z")
+        )
+        val txAfter = Transaction(
+            id = "tx-after",
+            description = "September Mid Month",
+            amount = 5000L,
+            type = TransactionType.EXPENSE,
+            date = Instant.parse("2026-09-15T12:00:00Z")
+        )
+
+        repository.insertTransaction(txBefore)
+        repository.insertTransaction(txStart)
+        repository.insertTransaction(txMid)
+        repository.insertTransaction(txEnd)
+        repository.insertTransaction(txAfter)
+
+        val result = repository.getTransactionsByDateRange(
+            startEpochMillis = startInstant.toEpochMilliseconds(),
+            endEpochMillis = endInstant.toEpochMilliseconds()
+        ).first()
+
+        assertEquals(listOf(txMid, txStart), result)
+    }
 }

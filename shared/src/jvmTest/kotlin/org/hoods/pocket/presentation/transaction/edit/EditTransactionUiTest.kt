@@ -177,4 +177,54 @@ class EditTransactionUiTest {
             assertTrue(transactions.isEmpty())
         }
     }
+
+    @Test
+    fun dateSelection_showsStoredDateAndOpensDatePicker() = runComposeUiTest {
+        val repository = FakeTransactionRepository()
+        val original = Transaction(
+            id = "tx-100",
+            description = "Dinner",
+            amount = 3500L,
+            type = TransactionType.EXPENSE,
+            date = Instant.parse("2024-05-31T16:08:37Z")
+        )
+        runTest { repository.insertTransaction(original) }
+
+        val viewModel = EditTransactionViewModel(
+            getTransactionByIdUseCase = GetTransactionByIdUseCase(repository),
+            updateTransactionUseCase = UpdateTransactionUseCase(repository),
+            deleteTransactionUseCase = DeleteTransactionUseCase(repository)
+        )
+
+        setContent {
+            EditTransactionScreen(
+                viewModel = viewModel,
+                transactionId = "tx-100",
+                onSaveSuccess = {},
+                onDeleteSuccess = {},
+                onDismiss = {}
+            )
+        }
+
+        waitForIdle()
+
+        // 1. Initial State: Stored date is displayed
+        onNodeWithTag("date_picker_button").assertIsDisplayed()
+        onNodeWithText("May 31, 2024").assertIsDisplayed()
+
+        // 2. Click date button to open DatePicker
+        onNodeWithTag("date_picker_button").performClick()
+        waitForIdle()
+
+        // 3. DatePicker is displayed
+        onNodeWithTag("date_picker").assertIsDisplayed()
+        onNodeWithTag("date_picker_confirm_button").assertIsDisplayed()
+        onNodeWithTag("date_picker_cancel_button").assertIsDisplayed()
+
+        // 4. Click Cancel to dismiss
+        onNodeWithTag("date_picker_cancel_button").performClick()
+        waitForIdle()
+
+        onNodeWithTag("date_picker").assertDoesNotExist()
+    }
 }
