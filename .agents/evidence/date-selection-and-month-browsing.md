@@ -100,7 +100,16 @@ Output:
 BUILD SUCCESSFUL in 12s
 ```
 
-## 5. Visual-Validation Evidence
+## 5. Visual-Validation Evidence & Per-Screen Design-Alignment Matrix
+
+### Per-Screen Design-Alignment Matrix
+
+| Screen / Journey | Mobile Reference | Desktop Reference | Required Layout Anchors | Approved Contract-Driven Omissions | Evidence Paths | Verdict |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Transaction List (Populated & Empty)** | `docs/design/reference/pocket-budget-mobile-design/budget-transaction-listing.png` | `docs/design/reference/pocket-budget-desktop-design/dashboard-transaction.png` | **Mobile**: Top title, month selector chip (`‹ Month YYYY ›`), transaction item rows (badge, description, date, amount), bottom-right FAB.<br>**Desktop**: 260dp fixed sidebar ("Pocket Budget", "+ Add Transaction", "Transactions"), top month navigation header (`Month YYYY ‹ ›`), white rounded card container (`Recent Transactions`, inline `+ New Transaction` pill, divider, transaction rows / centered empty text). | Budgets sidebar item, Cashflow overview cards, Budget health card, Category budgets cards (all out of transaction slice scope). | `docs/evidence/screenshots/mobile-transaction-list-populated.png`<br>`docs/evidence/screenshots/mobile-transaction-list-empty.png`<br>`docs/evidence/screenshots/desktop-transaction-list-populated.png`<br>`docs/evidence/screenshots/desktop-transaction-list-empty.png` | **Approved deviation** |
+| **Add Transaction (Expense & Income)** | `docs/design/reference/pocket-budget-mobile-design/add-expense.png`<br>`docs/design/reference/pocket-budget-mobile-design/add-income.png` | `docs/design/reference/pocket-budget-desktop-design/add-transaction.png` | **Mobile**: Dismiss `✕`, segmented pill toggle, hero amount, input card (amount, description, date button), bottom full-width button.<br>**Desktop**: Centered card container (max 680dp), header (`← New Transaction`), horizontal divider, centered segmented toggle, dedicated Amount Box (mint container with `AMOUNT` label and large currency input), two-column row (`Description` + `Date`), side-by-side `Cancel` and `Save Transaction` pill buttons. | Category selector grid (categories not in active transaction scope). | `docs/evidence/screenshots/mobile-add-transaction-expense.png`<br>`docs/evidence/screenshots/mobile-add-transaction-income.png`<br>`docs/evidence/screenshots/desktop-add-transaction.png` | **Approved deviation** |
+| **Edit Transaction** | `docs/design/reference/pocket-budget-mobile-design/add-expense.png` (form layout) | `docs/design/reference/pocket-budget-desktop-design/add-transaction.png` (form composition) | **Mobile**: Dismiss `✕`, segmented pill, trash icon, hero amount, prefilled inputs, save button.<br>**Desktop**: Centered card container (max 680dp), header (`← Edit Transaction` on left, trash icon `🗑` button on right), horizontal divider, centered segmented toggle, dedicated Amount Box (`AMOUNT` label, large prefilled amount), two-column row (`Description` + `Date`), side-by-side `Cancel` and `Save Changes` buttons. | Category selector grid. | `docs/evidence/screenshots/mobile-edit-transaction.png`<br>`docs/evidence/screenshots/desktop-edit-transaction.png` | **Approved deviation** |
+| **Delete Confirmation Dialog** | `docs/design/reference/pocket-budget-design-system.md` Dialog Specs | `docs/design/reference/pocket-budget-design-system.md` Dialog Specs | Dialog title ("Delete Transaction?"), explanatory body, red destructive "Delete" action, "Cancel" action, rounded 20dp container. | None. | `docs/evidence/screenshots/mobile-delete-confirmation-dialog.png`<br>`docs/evidence/screenshots/delete-confirmation-dialog.png` | **Aligned** |
 
 ### Captured Artifacts (from Build Output to Durable Evidence)
 - **Build Output Directory**: `build/reports/visual-validation/screenshots/`
@@ -121,29 +130,24 @@ BUILD SUCCESSFUL in 12s
 ### Visual Comparison Against Design References
 
 #### Mobile Viewport (390x844 dp)
-| Captured Screen | Reference Mockup (`docs/design/reference/pocket-budget-mobile-design/`) | Visual Review Summary |
-| :--- | :--- | :--- |
-| `mobile-transaction-list-populated.png` | `budget-transaction-listing.png` | Month selector row matches layout (`‹ September 2026 ›`), list rows display formatted dates (`Expense • Sep 8, 2026`), 72dp item heights and 40dp badges preserved. |
-| `mobile-transaction-list-empty.png` | `budget-transaction-listing.png` | Clean empty state with month context (`No transactions yet\nTap + to add one`) and FAB. |
-| `mobile-add-transaction-expense.png` | `add-expense.png` | Date row displays `📅 Today, Sep 9, 2026 ›` matching mockup date indicator and chevron navigation cue. |
-| `mobile-add-transaction-income.png` | `add-income.png` | Income toggle selected, green hero display, date indicator with current date. |
-| `mobile-edit-transaction.png` | `add-expense.png` | Stored date displayed (`📅 Aug 22, 2026 ›`), pre-filled values, top delete action icon. |
-| `mobile-delete-confirmation-dialog.png` | `pocket-budget-design-system.md` Dialog Specs | Material 3 confirmation dialog with bold title, explanatory body, and red destructive action. |
+- **`mobile-transaction-list-populated.png`**: Matches `budget-transaction-listing.png`. Month selector row (`‹ September 2026 ›`), list rows with formatted dates (`Expense • Sep 8, 2026`), 72dp item heights and 40dp badges.
+- **`mobile-transaction-list-empty.png`**: Matches `budget-transaction-listing.png` empty state with month context and FAB.
+- **`mobile-add-transaction-expense.png` & `mobile-add-transaction-income.png`**: Matches `add-expense.png` and `add-income.png`. Segmented toggle, hero amount, input card with date indicator (`📅 Today, Sep 9, 2026 ›`), capsule save button.
+- **`mobile-edit-transaction.png`**: Matches mobile form specs with pre-filled values, stored date (`📅 Aug 22, 2026 ›`), and top-right delete action icon.
+- **`mobile-delete-confirmation-dialog.png`**: Material 3 confirmation dialog with bold title, explanatory body, and red destructive action.
 
 #### Desktop Viewport (1024x768 dp)
-| Captured Screen | Reference Mockup (`docs/design/reference/pocket-budget-desktop-design/`) | Visual Review Summary |
-| :--- | :--- | :--- |
-| `desktop-transaction-list-populated.png` | `dashboard-transaction.png` | Month header and navigation aligned cleanly across widescreen layout, cards styled with container tokens, FAB anchored bottom-right. |
-| `desktop-transaction-list-empty.png` | `dashboard-transaction.png` | Widescreen centered empty container with actionable subtitle and FAB. |
-| `desktop-add-transaction.png` | `add-transaction.png` | Widescreen modal card container with Expense/Income toggle, large amount hero, inputs, and primary save button. |
-| `desktop-edit-transaction.png` | `add-transaction.png` | Widescreen modal card container with prefilled values, stored date, delete action icon, and save changes button. |
+- **`desktop-transaction-list-populated.png`**: Implements desktop layout anchors from `dashboard-transaction.png`. 260dp fixed sidebar with "Pocket Budget", "Financial Wellness", "+ Add Transaction" button, and active "Transactions" nav item. Top month navigation header with `September 2026 ‹ ›`. "Recent Transactions" white container card (`24.dp` corners, shadow) with inline `+ New Transaction` button pill, subtle divider, and transaction items with arrows, titles, dates, and amounts.
+- **`desktop-transaction-list-empty.png`**: Implements desktop layout anchors from `dashboard-transaction.png`. Sidebar and month header intact; "Recent Transactions" card displays clean centered empty state message with actionable prompt.
+- **`desktop-add-transaction.png`**: Implements desktop form composition from `add-transaction.png`. Centered white card container (max width 680dp) on soft mint background; card header with back arrow `←` and "New Transaction" title; divider; centered segmented Expense/Income pill; dedicated Amount Box with `AMOUNT` label and large currency input; two-column row for Description and Date; side-by-side "Cancel" and "Save Transaction" buttons.
+- **`desktop-edit-transaction.png`**: Implements desktop form composition from `add-transaction.png`. Centered white card container (max width 680dp) with back arrow `←`, "Edit Transaction" title, and delete trash icon button `🗑` in header; divider; centered segmented pill; dedicated Amount Box; two-column row for Description and Date; side-by-side "Cancel" and "Save Changes" buttons.
 
 ### Design Token Alignment
-- **Primary Color**: `PocketColors.Primary` (`#005136`) applied to FAB, primary action buttons, active pill toggles, and "Today" return chip.
+- **Primary Color**: `PocketColors.Primary` (`#005136`) applied to sidebar buttons, primary action buttons, active pill toggles, and "Today" return chip.
 - **Surfaces**: `PocketColors.Surface` (`#EEFDF2`) and `SurfaceContainerLowest` (`#FFFFFF`) applied to screen backgrounds, cards, and dialogs.
 - **Typography & Grid**: Work Sans typography scale, 8pt spacing grid, 16dp rounded card/input corners, capsule full-radius buttons.
 
-### Contract-Driven Deviations
+### Approved Contract-Driven Omissions
 - **Category Selector**: Illustrated in reference mockups; excluded per transaction lifecycle contract.
 - **Balance Overview Cards & Budget Bars**: Illustrated in desktop dashboard mockup; deferred to future budget milestone.
 

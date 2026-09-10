@@ -146,12 +146,29 @@ Mockups frequently illustrate features planned for subsequent phases. Always adh
 
 ---
 
-## 5. Pre-Implementation Checklist
+## 5. Per-Screen Design-Alignment Matrix
+
+To prevent cosmetic alignment claims and ensure structural fidelity across form factors, every UI implementation contract, workflow review, and task evidence must compile a **Per-Screen Design-Alignment Matrix**:
+
+| Screen / Journey | Mobile Reference (`pocket-budget-mobile-design/`) | Desktop Reference (`pocket-budget-desktop-design/`) | Required Layout Anchors | Approved Contract-Driven Omissions | Evidence Paths | Verdict (`Aligned` / `Approved deviation` / `Correction required`) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `[Screen Name]` | `[mockup.png]` | `[mockup.png]` | `[Structural anchors: e.g. Left nav rail, card container, two-column input row, header action]` | `[Out-of-scope elements: e.g. Categories, budget health]` | `docs/evidence/screenshots/[mobile-*.png]`<br>`docs/evidence/screenshots/[desktop-*.png]` | `[Verdict]` |
+
+### Verdict Definitions & Honesty Rules
+1. **Never claim `Aligned` based on colours and tokens alone**: A screen is NOT aligned merely because it uses `#005136` or `#EEFDF2`. Alignment requires structural composition, responsive layout anchors, and component hierarchy to match the mockup for that viewport.
+2. **`Aligned`**: The UI matches both mobile and desktop reference layouts, including viewport-specific structural anchors (such as desktop card containers, column arrangements, and header navigation).
+3. **`Approved deviation`**: A visual or layout difference exists solely because an element was explicitly excluded by the active implementation contract (e.g. category selector grid or budget health meters omitted per contract). All in-scope elements adhere to reference anchors.
+4. **`Correction required`**: A structural discrepancy, missing layout anchor, or misaligned composition exists that is NOT justified by contract exclusions (e.g., stretching a mobile column across a 1024px desktop viewport instead of using the desktop card container and multi-column field layout).
+
+---
+
+## 6. Pre-Implementation Checklist
 
 Before committing any UI code:
 
 - [ ] Inspected [`pocket-budget-design-system.md`](file:///Users/apple/Documents/Agentic%20Engineering/budget-poket%20resources/pocket-budget/docs/design/reference/pocket-budget-design-system.md) for exact color hexes, typography specs, radiuses, and spacing.
 - [ ] When both mobile and desktop references exist, inspected both before implementation via `view_file` to observe screen layout, interactive states, and responsive differences.
+- [ ] Compiled Per-Screen Design-Alignment Matrix with honest verdicts (`Aligned`, `Approved deviation`, `Correction required`).
 - [ ] Captured, reviewed, and recorded visual evidence for both supported viewport sizes (mobile and desktop), or recorded as NOT RUN with the reason.
 - [ ] Verified all inputs and actions match the active implementation contract.
 - [ ] Ensured monetary amounts convert directly between text and `Long` integer cents (strictly no `Double` or `Float`).

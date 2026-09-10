@@ -66,6 +66,13 @@
   - Desktop:
     - `[screen-desktop-1.png]`
 
+### Per-Screen Design-Alignment Matrix
+<!-- Do not describe a screen as aligned only because its colours and tokens match. Real alignment requires structural composition, responsive layout anchors, and component hierarchy to match both references. -->
+
+| Screen / Journey | Mobile Reference (`pocket-budget-mobile-design/`) | Desktop Reference (`pocket-budget-desktop-design/`) | Required Layout Anchors | Approved Contract-Driven Omissions | Evidence Paths | Verdict (`Aligned` / `Approved deviation` / `Correction required`) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `[Screen Name]` | `[mockup.png]` | `[mockup.png]` | `[e.g. Left nav rail, card container, two-column row, header actions]` | `[e.g. Category grid, budgets]` | `docs/evidence/screenshots/[mobile-*.png]`<br>`docs/evidence/screenshots/[desktop-*.png]` | `[Aligned / Approved deviation / Correction required]` |
+
 ### Visual Comparison Against Design References
 
 #### Mobile Viewport (e.g. 390x844 dp)

@@ -47,12 +47,14 @@ Capture visual evidence and review against design references:
 1. **Dual-Viewport Screenshot Capture to Build Directory**:
    - When both mobile and desktop references exist, capture, review, and record evidence for both supported viewport sizes (e.g., mobile at 390x844 dp and desktop at 1024x768 dp). If one cannot run, record it as NOT RUN with the reason.
    - Automated screenshot capture must output images to `build/reports/visual-validation/screenshots/` first so normal test runs do not dirty tracked files.
-2. **Side-by-Side Visual Review**:
+2. **Side-by-Side Visual Review & Design-Alignment Matrix**:
    - Compare captured screens against the corresponding PNG mockups in `docs/design/reference/` across both mobile and desktop viewports.
-   - Verify design token adherence (colors, typography, shapes, spacing).
-   - Document any intentional contract-driven deviations (e.g. excluded date pickers or category selectors).
+   - Verify design token adherence (colors, typography, shapes, spacing) AND structural layout anchors (e.g., desktop card containers, column layouts, navigation anchors vs mobile full-width flows). Do not describe a screen as aligned solely because colors and tokens match.
+   - Compile the **Per-Screen Design-Alignment Matrix**:
+     - Columns: Screen / Journey, Mobile Reference, Desktop Reference, Required Layout Anchors, Approved Contract-Driven Omissions, Evidence Paths, Verdict (`Aligned`, `Approved deviation`, or `Correction required`).
+   - Document any intentional contract-driven omissions (e.g. excluded categories or budget health bars).
 3. **Durable Evidence Selection**:
-   - After visual review, copy only the approved screenshots to durable evidence (e.g. `docs/evidence/screenshots/`).
+   - After visual review and matrix completion, copy only the approved screenshots to durable evidence (e.g. `docs/evidence/screenshots/`).
 
 ## 6. Verification Gate & Truthful Reporting
 
