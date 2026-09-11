@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.flow.emptyFlow
+import org.hoods.pocket.data.local.database.createBudgetRepository
 import org.hoods.pocket.data.local.database.createTransactionRepository
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.repository.TransactionRepository
@@ -18,9 +19,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val repository = createTransactionRepository(applicationContext)
+        val budgetRepository = createBudgetRepository(applicationContext)
 
         setContent {
-            App(repository = repository)
+            App(
+                repository = repository,
+                budgetRepository = budgetRepository
+            )
         }
     }
 }
@@ -31,6 +36,8 @@ fun AppAndroidPreview() {
     val previewRepo = remember {
         object : TransactionRepository {
             override fun getTransactions() = emptyFlow<List<Transaction>>()
+            override fun getTransactionsByDateRange(startEpochMillis: Long, endEpochMillis: Long) = emptyFlow<List<Transaction>>()
+            override fun getExpenseTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long) = kotlinx.coroutines.flow.flowOf(0L)
             override suspend fun insertTransaction(transaction: Transaction) {}
             override suspend fun updateTransaction(transaction: Transaction) {}
             override suspend fun deleteTransaction(id: String) {}

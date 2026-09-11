@@ -3,7 +3,9 @@ package org.hoods.pocket.data.local.database
 import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import org.hoods.pocket.data.repository.RoomBudgetRepository
 import org.hoods.pocket.data.repository.RoomTransactionRepository
+import org.hoods.pocket.domain.repository.BudgetRepository
 import org.hoods.pocket.domain.repository.TransactionRepository
 
 fun getDatabaseBuilder(context: Context): RoomDatabase.Builder<AppDatabase> {
@@ -15,7 +17,18 @@ fun getDatabaseBuilder(context: Context): RoomDatabase.Builder<AppDatabase> {
     )
 }
 
+private var databaseInstance: AppDatabase? = null
+
+fun getSharedAppDatabase(context: Context): AppDatabase {
+    return databaseInstance ?: synchronized(Unit) {
+        databaseInstance ?: createRoomDatabase(getDatabaseBuilder(context)).also { databaseInstance = it }
+    }
+}
+
 fun createTransactionRepository(context: Context): TransactionRepository {
-    val database = createRoomDatabase(getDatabaseBuilder(context))
-    return RoomTransactionRepository(database.transactionDao())
+    return RoomTransactionRepository(getSharedAppDatabase(context).transactionDao())
+}
+
+fun createBudgetRepository(context: Context): BudgetRepository {
+    return RoomBudgetRepository(getSharedAppDatabase(context).budgetDao())
 }

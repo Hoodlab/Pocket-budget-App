@@ -41,6 +41,10 @@ class RoomTransactionRepository(
         }
     }
 
+    override fun getExpenseTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Long> {
+        return dao.getExpenseTotalByDateRange(startEpochMillis, endEpochMillis)
+    }
+
     override suspend fun insertTransaction(transaction: Transaction) {
         dao.insertTransaction(
             TransactionEntity(

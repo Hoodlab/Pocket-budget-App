@@ -23,6 +23,13 @@ import org.hoods.pocket.presentation.transaction.edit.EditTransactionContent
 import org.hoods.pocket.presentation.transaction.edit.EditTransactionUiState
 import org.hoods.pocket.presentation.transaction.list.TransactionListContent
 import org.hoods.pocket.presentation.transaction.list.TransactionListUiState
+import org.hoods.pocket.domain.model.BudgetHealthStatus
+import org.hoods.pocket.domain.model.MonthlyBudget
+import org.hoods.pocket.domain.model.MonthlyBudgetSummary
+import org.hoods.pocket.presentation.budget.dashboard.BudgetDashboardContent
+import org.hoods.pocket.presentation.budget.dashboard.BudgetDashboardUiState
+import org.hoods.pocket.presentation.budget.set.SetBudgetContent
+import org.hoods.pocket.presentation.budget.set.SetBudgetUiState
 import java.io.File
 import javax.imageio.ImageIO
 import kotlin.test.Test
@@ -434,5 +441,193 @@ class VisualValidationCaptureTest {
         }
         waitForIdle()
         saveScreenshot("desktop-edit-transaction", onRoot().captureToImage())
+    }
+
+    // ==========================================
+    // Budget Visual Validation (Mobile)
+    // ==========================================
+
+    @Test
+    fun captureMobile_budgetDashboard_empty() = runComposeUiTest {
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 390.dp, height = 844.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    BudgetDashboardContent(
+                        uiState = BudgetDashboardUiState(
+                            selectedMonth = YearMonth(2026, 9),
+                            isCurrentMonth = true,
+                            summary = null
+                        ),
+                        onSetBudgetClick = {},
+                        onNavigateToTransactions = {},
+                        onPreviousMonthClick = {},
+                        onNextMonthClick = {},
+                        onCurrentMonthClick = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("mobile-budget-dashboard-empty", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureMobile_budgetDashboard_populated() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 390.dp, height = 844.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    BudgetDashboardContent(
+                        uiState = BudgetDashboardUiState(
+                            selectedMonth = targetMonth,
+                            isCurrentMonth = false,
+                            summary = MonthlyBudgetSummary(
+                                yearMonth = targetMonth,
+                                budget = MonthlyBudget(targetMonth, 300000L),
+                                totalExpense = 258000L,
+                                remainingAmount = 42000L,
+                                progress = 0.86f,
+                                status = BudgetHealthStatus.NEAR_LIMIT
+                            )
+                        ),
+                        onSetBudgetClick = {},
+                        onNavigateToTransactions = {},
+                        onPreviousMonthClick = {},
+                        onNextMonthClick = {},
+                        onCurrentMonthClick = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("mobile-budget-dashboard-populated", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureMobile_setBudget() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 390.dp, height = 844.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    SetBudgetContent(
+                        uiState = SetBudgetUiState(
+                            yearMonth = targetMonth,
+                            amountText = "3000.00"
+                        ),
+                        onAmountChanged = {},
+                        onSaveClick = {},
+                        onDismiss = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("mobile-set-budget", onRoot().captureToImage())
+    }
+
+    // ==========================================
+    // Budget Visual Validation (Desktop)
+    // ==========================================
+
+    @Test
+    fun captureDesktop_budgetDashboard_empty() = runComposeUiTest {
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 1024.dp, height = 768.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    BudgetDashboardContent(
+                        uiState = BudgetDashboardUiState(
+                            selectedMonth = YearMonth(2026, 9),
+                            isCurrentMonth = true,
+                            summary = null
+                        ),
+                        onSetBudgetClick = {},
+                        onNavigateToTransactions = {},
+                        onPreviousMonthClick = {},
+                        onNextMonthClick = {},
+                        onCurrentMonthClick = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("desktop-budget-dashboard-empty", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureDesktop_budgetDashboard_populated() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 1024.dp, height = 768.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    BudgetDashboardContent(
+                        uiState = BudgetDashboardUiState(
+                            selectedMonth = targetMonth,
+                            isCurrentMonth = false,
+                            summary = MonthlyBudgetSummary(
+                                yearMonth = targetMonth,
+                                budget = MonthlyBudget(targetMonth, 300000L),
+                                totalExpense = 258000L,
+                                remainingAmount = 42000L,
+                                progress = 0.86f,
+                                status = BudgetHealthStatus.NEAR_LIMIT
+                            )
+                        ),
+                        onSetBudgetClick = {},
+                        onNavigateToTransactions = {},
+                        onPreviousMonthClick = {},
+                        onNextMonthClick = {},
+                        onCurrentMonthClick = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("desktop-budget-dashboard-populated", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureDesktop_setBudget() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 1024.dp, height = 768.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    SetBudgetContent(
+                        uiState = SetBudgetUiState(
+                            yearMonth = targetMonth,
+                            amountText = "3000.00"
+                        ),
+                        onAmountChanged = {},
+                        onSaveClick = {},
+                        onDismiss = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("desktop-set-budget", onRoot().captureToImage())
     }
 }

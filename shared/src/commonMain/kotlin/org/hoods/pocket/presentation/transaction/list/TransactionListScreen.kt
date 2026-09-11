@@ -10,6 +10,7 @@ fun TransactionListScreen(
     viewModel: TransactionListViewModel,
     onAddTransactionClick: () -> Unit,
     onTransactionClick: (String) -> Unit,
+    onNavigateToBudgets: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -21,6 +22,7 @@ fun TransactionListScreen(
         onPreviousMonthClick = viewModel::onPreviousMonth,
         onNextMonthClick = viewModel::onNextMonth,
         onCurrentMonthClick = viewModel::onCurrentMonth,
+        onNavigateToBudgets = onNavigateToBudgets,
         modifier = modifier
     )
 }

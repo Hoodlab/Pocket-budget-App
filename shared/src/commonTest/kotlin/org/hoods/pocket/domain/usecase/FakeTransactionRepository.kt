@@ -23,6 +23,14 @@ class FakeTransactionRepository : TransactionRepository {
             }.sortedByDescending { it.date.toEpochMilliseconds() }
         }
 
+    override fun getExpenseTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Long> =
+        transactionsFlow.map { list ->
+            list.filter {
+                it.type == org.hoods.pocket.domain.model.TransactionType.EXPENSE &&
+                    it.date.toEpochMilliseconds() in startEpochMillis until endEpochMillis
+            }.sumOf { it.amount }
+        }
+
     override suspend fun insertTransaction(transaction: Transaction) {
         if (shouldFail) throw IllegalStateException(failureMessage)
         transactionsFlow.value = transactionsFlow.value + transaction

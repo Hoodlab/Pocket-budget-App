@@ -242,4 +242,25 @@ class RoomTransactionRepositoryTest {
 
         assertEquals(listOf(txMid, txStart), result)
     }
+
+    @Test
+    fun getExpenseTotalByDateRange_sumsOnlyExpensesWithinRange_ignoringIncomeAndOutOfRange() = runTest {
+        val startMillis = Instant.parse("2026-08-01T00:00:00Z").toEpochMilliseconds()
+        val endMillis = Instant.parse("2026-09-01T00:00:00Z").toEpochMilliseconds()
+
+        val txBeforeExpense = Transaction("1", "July Expense", 1000L, TransactionType.EXPENSE, Instant.parse("2026-07-31T23:59:59Z"))
+        val txInExpense1 = Transaction("2", "Aug Expense 1", 3500L, TransactionType.EXPENSE, Instant.parse("2026-08-05T12:00:00Z"))
+        val txInExpense2 = Transaction("3", "Aug Expense 2", 1500L, TransactionType.EXPENSE, Instant.parse("2026-08-20T12:00:00Z"))
+        val txInIncome = Transaction("4", "Aug Income", 500000L, TransactionType.INCOME, Instant.parse("2026-08-15T12:00:00Z"))
+        val txAfterExpense = Transaction("5", "Sep Expense", 4000L, TransactionType.EXPENSE, Instant.parse("2026-09-01T00:00:00Z"))
+
+        repository.insertTransaction(txBeforeExpense)
+        repository.insertTransaction(txInExpense1)
+        repository.insertTransaction(txInExpense2)
+        repository.insertTransaction(txInIncome)
+        repository.insertTransaction(txAfterExpense)
+
+        val total = repository.getExpenseTotalByDateRange(startMillis, endMillis).first()
+        assertEquals(5000L, total) // 3500 + 1500; income and out-of-range excluded
+    }
 }

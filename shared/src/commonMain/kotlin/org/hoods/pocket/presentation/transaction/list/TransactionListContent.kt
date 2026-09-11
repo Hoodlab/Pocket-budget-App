@@ -47,6 +47,7 @@ fun TransactionListContent(
     onPreviousMonthClick: () -> Unit = {},
     onNextMonthClick: () -> Unit = {},
     onCurrentMonthClick: () -> Unit = {},
+    onNavigateToBudgets: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(
@@ -119,6 +120,27 @@ fun TransactionListContent(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = PocketColors.Primary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Navigation Item: Budgets
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onNavigateToBudgets() }
+                            .padding(horizontal = 16.dp)
+                            .testTag("nav_budgets"),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(
+                            text = "Budgets",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = PocketColors.OnSurfaceVariant
                         )
                     }
                 }
@@ -321,7 +343,7 @@ fun TransactionListContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 24.dp)
+                    .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 64.dp)
             ) {
                 // Header
                 Row(
@@ -469,7 +491,7 @@ fun TransactionListContent(
                 onClick = onAddTransactionClick,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(24.dp)
+                    .padding(bottom = 80.dp, end = 24.dp)
                     .testTag("add_transaction_fab"),
                 containerColor = PocketColors.Primary,
                 contentColor = PocketColors.OnPrimary,
@@ -480,6 +502,47 @@ fun TransactionListContent(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
+            }
+
+            // Mobile Bottom Navigation Bar (Fixed at bottom)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .background(PocketColors.SurfaceContainerLowest)
+                        .padding(horizontal = 32.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Transactions Tab (Active)
+                    Column(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(PocketColors.SurfaceContainer)
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .testTag("nav_transactions"),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = "🧾", fontSize = 18.sp)
+                        Text(text = "Transactions", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PocketColors.Primary)
+                    }
+
+                    // Budgets Tab
+                    Column(
+                        modifier = Modifier
+                            .clickable { onNavigateToBudgets() }
+                            .testTag("nav_budgets"),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = "💵", fontSize = 18.sp)
+                        Text(text = "Budgets", fontSize = 11.sp, color = PocketColors.OnSurfaceVariant)
+                    }
+                }
             }
         }
     }
