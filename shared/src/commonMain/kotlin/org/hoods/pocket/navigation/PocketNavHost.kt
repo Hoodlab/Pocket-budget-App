@@ -125,6 +125,9 @@ fun PocketNavHost(
                 onSaveSuccess = {
                     navController.popBackStack()
                 },
+                onDeleteSuccess = {
+                    navController.popBackStack()
+                },
                 onDismiss = {
                     navController.popBackStack()
                 }

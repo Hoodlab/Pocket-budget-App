@@ -278,7 +278,27 @@ fun BudgetDashboardContent(
                                         fontWeight = FontWeight.SemiBold,
                                         color = PocketColors.OnSurface
                                     )
-                                    HealthBadge(status = summary.status)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        HealthBadge(status = summary.status)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(PocketColors.SurfaceContainer)
+                                                .clickable { onSetBudgetClick() }
+                                                .testTag("edit_budget_button"),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "✎",
+                                                color = PocketColors.OnSurfaceVariant,
+                                                fontSize = 14.sp
+                                            )
+                                        }
+                                    }
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -515,7 +535,27 @@ fun BudgetDashboardContent(
                                     fontWeight = FontWeight.SemiBold,
                                     color = PocketColors.OnSurface
                                 )
-                                HealthBadge(status = summary.status)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    HealthBadge(status = summary.status)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(PocketColors.SurfaceContainer)
+                                            .clickable { onSetBudgetClick() }
+                                            .testTag("edit_budget_button"),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "✎",
+                                            color = PocketColors.OnSurfaceVariant,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))

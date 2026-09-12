@@ -32,4 +32,8 @@ class RoomBudgetRepository(
             )
         )
     }
+
+    override suspend fun deleteMonthlyBudget(yearMonth: YearMonth) {
+        dao.deleteMonthlyBudget(yearMonth.year, yearMonth.month)
+    }
 }

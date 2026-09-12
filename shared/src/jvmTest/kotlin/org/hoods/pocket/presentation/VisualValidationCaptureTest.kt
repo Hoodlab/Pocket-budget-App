@@ -630,4 +630,128 @@ class VisualValidationCaptureTest {
         waitForIdle()
         saveScreenshot("desktop-set-budget", onRoot().captureToImage())
     }
+
+    @Test
+    fun captureMobile_editBudget() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 390.dp, height = 844.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    SetBudgetContent(
+                        uiState = SetBudgetUiState(
+                            yearMonth = targetMonth,
+                            amountText = "3000.00",
+                            isExistingBudget = true
+                        ),
+                        onAmountChanged = {},
+                        onSaveClick = {},
+                        onRequestDelete = {},
+                        onDismissDelete = {},
+                        onConfirmDelete = {},
+                        onDismiss = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("mobile-edit-budget", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureMobile_deleteBudgetDialog() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 390.dp, height = 844.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    SetBudgetContent(
+                        uiState = SetBudgetUiState(
+                            yearMonth = targetMonth,
+                            amountText = "3000.00",
+                            isExistingBudget = true,
+                            showDeleteConfirmation = true
+                        ),
+                        onAmountChanged = {},
+                        onSaveClick = {},
+                        onRequestDelete = {},
+                        onDismissDelete = {},
+                        onConfirmDelete = {},
+                        onDismiss = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        val image = onNode(isDialog()).captureToImage()
+        saveScreenshot("mobile-delete-budget-dialog", image)
+    }
+
+    @Test
+    fun captureDesktop_editBudget() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 1024.dp, height = 768.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    SetBudgetContent(
+                        uiState = SetBudgetUiState(
+                            yearMonth = targetMonth,
+                            amountText = "3000.00",
+                            isExistingBudget = true
+                        ),
+                        onAmountChanged = {},
+                        onSaveClick = {},
+                        onRequestDelete = {},
+                        onDismissDelete = {},
+                        onConfirmDelete = {},
+                        onDismiss = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("desktop-edit-budget", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureDesktop_deleteBudgetDialog() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 1024.dp, height = 768.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    SetBudgetContent(
+                        uiState = SetBudgetUiState(
+                            yearMonth = targetMonth,
+                            amountText = "3000.00",
+                            isExistingBudget = true,
+                            showDeleteConfirmation = true
+                        ),
+                        onAmountChanged = {},
+                        onSaveClick = {},
+                        onRequestDelete = {},
+                        onDismissDelete = {},
+                        onConfirmDelete = {},
+                        onDismiss = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        val image = onNode(isDialog()).captureToImage()
+        saveScreenshot("desktop-delete-budget-dialog", image)
+    }
 }

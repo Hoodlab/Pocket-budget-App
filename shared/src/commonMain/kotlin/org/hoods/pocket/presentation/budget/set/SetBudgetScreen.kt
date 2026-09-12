@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 fun SetBudgetScreen(
     viewModel: SetBudgetViewModel,
     onSaveSuccess: () -> Unit,
+    onDeleteSuccess: () -> Unit = {},
     onDismiss: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -19,6 +20,7 @@ fun SetBudgetScreen(
         viewModel.events.collect { event ->
             when (event) {
                 SetBudgetEvent.SaveSuccess -> onSaveSuccess()
+                SetBudgetEvent.DeleteSuccess -> onDeleteSuccess()
             }
         }
     }
@@ -27,6 +29,9 @@ fun SetBudgetScreen(
         uiState = uiState,
         onAmountChanged = viewModel::onAmountChanged,
         onSaveClick = viewModel::saveBudget,
+        onRequestDelete = viewModel::requestDelete,
+        onDismissDelete = viewModel::dismissDelete,
+        onConfirmDelete = viewModel::confirmDelete,
         onDismiss = onDismiss,
         modifier = modifier
     )

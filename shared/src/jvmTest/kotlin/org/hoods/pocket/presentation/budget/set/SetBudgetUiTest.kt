@@ -2,15 +2,20 @@ package org.hoods.pocket.presentation.budget.set
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.hoods.pocket.domain.model.MonthlyBudget
 import org.hoods.pocket.domain.model.YearMonth
+import org.hoods.pocket.domain.usecase.DeleteMonthlyBudgetUseCase
 import org.hoods.pocket.domain.usecase.FakeBudgetRepository
+import org.hoods.pocket.domain.usecase.GetMonthlyBudgetUseCase
 import org.hoods.pocket.domain.usecase.SetMonthlyBudgetUseCase
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -25,12 +30,19 @@ class SetBudgetUiTest {
     @Test
     fun validInput_savesBudgetAndInvokesOnSaveSuccess() = runComposeUiTest {
         val repository = FakeBudgetRepository()
-        val useCase = SetMonthlyBudgetUseCase(repository)
+        val setUseCase = SetMonthlyBudgetUseCase(repository)
+        val getUseCase = GetMonthlyBudgetUseCase(repository)
+        val deleteUseCase = DeleteMonthlyBudgetUseCase(repository)
         val targetMonth = YearMonth(2026, 8)
         var saved = false
 
         setContent {
-            val viewModel = SetBudgetViewModel(useCase, targetMonth)
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = setUseCase,
+                getMonthlyBudgetUseCase = getUseCase,
+                deleteMonthlyBudgetUseCase = deleteUseCase,
+                yearMonth = targetMonth
+            )
             SetBudgetScreen(
                 viewModel = viewModel,
                 onSaveSuccess = { saved = true },
@@ -55,14 +67,171 @@ class SetBudgetUiTest {
     }
 
     @Test
+    fun existingBudget_prefillsAmountAndShowsDeleteButton() = runComposeUiTest {
+        val repository = FakeBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+        repository.setMonthlyBudget(MonthlyBudget(targetMonth, 350000L)) // $3,500.00
+
+        val setUseCase = SetMonthlyBudgetUseCase(repository)
+        val getUseCase = GetMonthlyBudgetUseCase(repository)
+        val deleteUseCase = DeleteMonthlyBudgetUseCase(repository)
+
+        setContent {
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = setUseCase,
+                getMonthlyBudgetUseCase = getUseCase,
+                deleteMonthlyBudgetUseCase = deleteUseCase,
+                yearMonth = targetMonth
+            )
+            SetBudgetScreen(
+                viewModel = viewModel,
+                onSaveSuccess = {},
+                onDismiss = {}
+            )
+        }
+
+        waitForIdle()
+
+        onNodeWithTag("delete_budget_button").assertIsDisplayed()
+        onNodeWithTag("save_budget_button").assertIsDisplayed()
+        onNodeWithText("Save Changes").assertIsDisplayed()
+    }
+
+    @Test
+    fun editBudget_changesAmountAndSavesWithoutDuplicate() = runComposeUiTest {
+        val repository = FakeBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+        repository.setMonthlyBudget(MonthlyBudget(targetMonth, 350000L))
+
+        val setUseCase = SetMonthlyBudgetUseCase(repository)
+        val getUseCase = GetMonthlyBudgetUseCase(repository)
+        val deleteUseCase = DeleteMonthlyBudgetUseCase(repository)
+        var saved = false
+
+        setContent {
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = setUseCase,
+                getMonthlyBudgetUseCase = getUseCase,
+                deleteMonthlyBudgetUseCase = deleteUseCase,
+                yearMonth = targetMonth
+            )
+            SetBudgetScreen(
+                viewModel = viewModel,
+                onSaveSuccess = { saved = true },
+                onDismiss = {}
+            )
+        }
+
+        waitForIdle()
+
+        onNodeWithTag("budget_amount_input").performTextClearance()
+        onNodeWithTag("budget_amount_input").performTextInput("4200.00")
+        onNodeWithTag("save_budget_button").performClick()
+
+        waitForIdle()
+
+        assertTrue(saved)
+        runTest {
+            val updated = repository.getMonthlyBudget(targetMonth).first()
+            assertNotNull(updated)
+            assertEquals(420000L, updated.limitAmount)
+        }
+    }
+
+    @Test
+    fun deleteBudget_cancelKeepsDialogDismissedAndBudgetIntact() = runComposeUiTest {
+        val repository = FakeBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+        repository.setMonthlyBudget(MonthlyBudget(targetMonth, 200000L))
+
+        val setUseCase = SetMonthlyBudgetUseCase(repository)
+        val getUseCase = GetMonthlyBudgetUseCase(repository)
+        val deleteUseCase = DeleteMonthlyBudgetUseCase(repository)
+
+        setContent {
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = setUseCase,
+                getMonthlyBudgetUseCase = getUseCase,
+                deleteMonthlyBudgetUseCase = deleteUseCase,
+                yearMonth = targetMonth
+            )
+            SetBudgetScreen(
+                viewModel = viewModel,
+                onSaveSuccess = {},
+                onDismiss = {}
+            )
+        }
+
+        waitForIdle()
+
+        onNodeWithTag("delete_budget_button").performClick()
+        waitForIdle()
+
+        onNodeWithText("Delete Monthly Budget?").assertIsDisplayed()
+        onNodeWithTag("cancel_delete_button").performClick()
+        waitForIdle()
+
+        runTest {
+            assertNotNull(repository.getMonthlyBudget(targetMonth).first())
+        }
+    }
+
+    @Test
+    fun deleteBudget_confirmInvokesDeleteAndTriggersOnDeleteSuccess() = runComposeUiTest {
+        val repository = FakeBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+        repository.setMonthlyBudget(MonthlyBudget(targetMonth, 200000L))
+
+        val setUseCase = SetMonthlyBudgetUseCase(repository)
+        val getUseCase = GetMonthlyBudgetUseCase(repository)
+        val deleteUseCase = DeleteMonthlyBudgetUseCase(repository)
+        var deleted = false
+
+        setContent {
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = setUseCase,
+                getMonthlyBudgetUseCase = getUseCase,
+                deleteMonthlyBudgetUseCase = deleteUseCase,
+                yearMonth = targetMonth
+            )
+            SetBudgetScreen(
+                viewModel = viewModel,
+                onSaveSuccess = {},
+                onDeleteSuccess = { deleted = true },
+                onDismiss = {}
+            )
+        }
+
+        waitForIdle()
+
+        onNodeWithTag("delete_budget_button").performClick()
+        waitForIdle()
+
+        onNodeWithTag("confirm_delete_button").performClick()
+        waitForIdle()
+
+        assertTrue(deleted)
+        runTest {
+            assertNull(repository.getMonthlyBudget(targetMonth).first())
+        }
+    }
+
+    @Test
     fun invalidInput_displaysErrorAndPreventsSave() = runComposeUiTest {
         val repository = FakeBudgetRepository()
-        val useCase = SetMonthlyBudgetUseCase(repository)
+        val setUseCase = SetMonthlyBudgetUseCase(repository)
+        val getUseCase = GetMonthlyBudgetUseCase(repository)
+        val deleteUseCase = DeleteMonthlyBudgetUseCase(repository)
         val targetMonth = YearMonth(2026, 8)
         var saved = false
 
         setContent {
-            val viewModel = SetBudgetViewModel(useCase, targetMonth)
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = setUseCase,
+                getMonthlyBudgetUseCase = getUseCase,
+                deleteMonthlyBudgetUseCase = deleteUseCase,
+                yearMonth = targetMonth
+            )
             SetBudgetScreen(
                 viewModel = viewModel,
                 onSaveSuccess = { saved = true },
@@ -97,12 +266,19 @@ class SetBudgetUiTest {
     @Test
     fun dismissAction_triggersOnDismiss() = runComposeUiTest {
         val repository = FakeBudgetRepository()
-        val useCase = SetMonthlyBudgetUseCase(repository)
+        val setUseCase = SetMonthlyBudgetUseCase(repository)
+        val getUseCase = GetMonthlyBudgetUseCase(repository)
+        val deleteUseCase = DeleteMonthlyBudgetUseCase(repository)
         val targetMonth = YearMonth(2026, 8)
         var dismissed = false
 
         setContent {
-            val viewModel = SetBudgetViewModel(useCase, targetMonth)
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = setUseCase,
+                getMonthlyBudgetUseCase = getUseCase,
+                deleteMonthlyBudgetUseCase = deleteUseCase,
+                yearMonth = targetMonth
+            )
             SetBudgetScreen(
                 viewModel = viewModel,
                 onSaveSuccess = {},

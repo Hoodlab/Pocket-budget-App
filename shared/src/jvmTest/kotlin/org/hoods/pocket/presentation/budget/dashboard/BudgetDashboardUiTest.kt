@@ -203,4 +203,36 @@ class BudgetDashboardUiTest {
         onNodeWithText("August 2026").assertIsDisplayed()
         onNodeWithText("/ $2000.00", substring = true).assertIsDisplayed()
     }
+
+    @Test
+    fun populatedBudget_editButtonTriggersOnSetBudgetClick() = runComposeUiTest {
+        val budgetRepository = FakeBudgetRepository()
+        val transactionRepository = FakeTransactionRepository()
+        val targetMonth = YearMonth(2026, 9)
+        var editClicked = false
+
+        budgetRepository.setMonthlyBudget(MonthlyBudget(targetMonth, 250000L))
+
+        val useCase = GetMonthlyBudgetSummaryUseCase(budgetRepository, transactionRepository)
+
+        setContent {
+            val viewModel = BudgetDashboardViewModel(
+                getMonthlyBudgetSummaryUseCase = useCase,
+                initialMonth = targetMonth
+            )
+            BudgetDashboardScreen(
+                viewModel = viewModel,
+                onSetBudgetClick = { editClicked = true },
+                onNavigateToTransactions = {}
+            )
+        }
+
+        waitForIdle()
+
+        onNodeWithTag("edit_budget_button").assertIsDisplayed()
+        onNodeWithTag("edit_budget_button").performClick()
+        waitForIdle()
+
+        assertTrue(editClicked)
+    }
 }

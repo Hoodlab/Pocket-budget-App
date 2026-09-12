@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import org.hoods.pocket.PocketBudgetRoot
@@ -102,5 +103,84 @@ class BudgetJourneyUiTest {
         waitForIdle()
         onNodeWithText("$150.00", substring = true).assertIsDisplayed()
         onNodeWithText("$1850.00 left").assertIsDisplayed()
+    }
+
+    @Test
+    fun completeBudgetLifecycleJourney_setEditCancelDeleteConfirm() = runComposeUiTest {
+        val transactionRepository = FakeTransactionRepository()
+        val budgetRepository = FakeBudgetRepository()
+        val currentMonth = YearMonth.now()
+
+        setContent {
+            PocketBudgetRoot(
+                repository = transactionRepository,
+                budgetRepository = budgetRepository
+            )
+        }
+
+        waitForIdle()
+
+        // 1. Navigate to Budgets tab (empty state)
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+
+        onNodeWithText("No budget set for ${currentMonth.format()}", substring = true).assertIsDisplayed()
+        onNodeWithTag("set_monthly_budget_button").assertIsDisplayed()
+
+        // 2. Click Set Monthly Budget
+        onNodeWithTag("set_monthly_budget_button").performClick()
+        waitForIdle()
+
+        // 3. Enter $3,000.00 and save
+        onNodeWithText("Set ${currentMonth.format()} Budget").assertIsDisplayed()
+        onNodeWithTag("budget_amount_input").performTextInput("3000.00")
+        onNodeWithTag("save_budget_button").performClick()
+        waitForIdle()
+
+        // 4. Return to Budget Dashboard: displays / $3000.00
+        onNodeWithText("Total Budget Used").assertIsDisplayed()
+        onNodeWithText("/ $3000.00", substring = true).assertIsDisplayed()
+        onNodeWithTag("edit_budget_button").assertIsDisplayed()
+
+        // 5. Click edit button -> navigate to SetBudget with prefilled values
+        onNodeWithTag("edit_budget_button").performClick()
+        waitForIdle()
+
+        // 6. Verify prefilled amount and delete button visible
+        onNodeWithTag("delete_budget_button").assertIsDisplayed()
+        onNodeWithText("Save Changes").assertIsDisplayed()
+
+        // 7. Edit amount to $4,500.00 and save
+        onNodeWithTag("budget_amount_input").performTextClearance()
+        onNodeWithTag("budget_amount_input").performTextInput("4500.00")
+        onNodeWithTag("save_budget_button").performClick()
+        waitForIdle()
+
+        // 8. Return to Budget Dashboard: verify updated limit / $4500.00
+        onNodeWithText("/ $4500.00", substring = true).assertIsDisplayed()
+
+        // 9. Click edit button again
+        onNodeWithTag("edit_budget_button").performClick()
+        waitForIdle()
+
+        // 10. Click delete button -> confirmation dialog appears
+        onNodeWithTag("delete_budget_button").performClick()
+        waitForIdle()
+        onNodeWithText("Delete Monthly Budget?").assertIsDisplayed()
+
+        // 11. Click cancel -> dialog dismisses, budget remains
+        onNodeWithTag("cancel_delete_button").performClick()
+        waitForIdle()
+        onNodeWithTag("budget_amount_input").assertIsDisplayed()
+
+        // 12. Click delete again -> confirm delete
+        onNodeWithTag("delete_budget_button").performClick()
+        waitForIdle()
+        onNodeWithTag("confirm_delete_button").performClick()
+        waitForIdle()
+
+        // 13. Returned to Budget Dashboard: empty state is restored
+        onNodeWithText("No budget set for ${currentMonth.format()}", substring = true).assertIsDisplayed()
+        onNodeWithTag("set_monthly_budget_button").assertIsDisplayed()
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -29,6 +30,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +51,9 @@ fun SetBudgetContent(
     uiState: SetBudgetUiState,
     onAmountChanged: (String) -> Unit,
     onSaveClick: () -> Unit,
+    onRequestDelete: () -> Unit = {},
+    onDismissDelete: () -> Unit = {},
+    onConfirmDelete: () -> Unit = {},
     onDismiss: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
@@ -87,34 +92,58 @@ fun SetBudgetContent(
                             .fillMaxWidth()
                             .padding(32.dp)
                     ) {
-                        // Card Header: Back arrow + "Set {Month} Budget" title
+                        // Card Header: Back arrow + Title + Delete Action
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (onDismiss != null) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (onDismiss != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .clickable { onDismiss() }
+                                            .testTag("back_button"),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "←",
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PocketColors.OnSurface
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = if (uiState.hasExistingBudget) "Edit ${uiState.monthTitle} Budget" else "Set ${uiState.monthTitle} Budget",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = PocketColors.OnSurface
+                                )
+                            }
+
+                            if (uiState.hasExistingBudget) {
                                 Box(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .clickable { onDismiss() }
-                                        .testTag("back_button"),
+                                        .background(PocketColors.SurfaceContainer)
+                                        .clickable { onRequestDelete() }
+                                        .testTag("delete_budget_button"),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "←",
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PocketColors.OnSurface
+                                        text = "🗑",
+                                        color = PocketColors.Expense,
+                                        fontSize = 16.sp
                                     )
                                 }
                             }
-                            Text(
-                                text = "Set ${uiState.monthTitle} Budget",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = PocketColors.OnSurface
-                            )
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -189,7 +218,7 @@ fun SetBudgetContent(
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        // Actions Row: Cancel & Save & Apply Budget
+                        // Actions Row: Cancel & Save Button
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -219,10 +248,16 @@ fun SetBudgetContent(
                                     .testTag("save_budget_button"),
                                 colors = ButtonDefaults.buttonColors(containerColor = PocketColors.Primary),
                                 shape = CircleShape,
-                                enabled = !uiState.isSaving
+                                enabled = !uiState.isSaving && !uiState.isDeleting
                             ) {
                                 Text(
-                                    text = if (uiState.isSaving) "Saving..." else "Save & Apply Budget",
+                                    text = if (uiState.isSaving) {
+                                        "Saving..."
+                                    } else if (uiState.hasExistingBudget) {
+                                        "Save Changes"
+                                    } else {
+                                        "Save & Apply Budget"
+                                    },
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = PocketColors.OnPrimary
@@ -242,35 +277,58 @@ fun SetBudgetContent(
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp)
             ) {
-                // Header with back arrow and Title
+                // Header with back arrow, Title, and optional Delete action
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (onDismiss != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (onDismiss != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .clickable { onDismiss() }
+                                    .testTag("back_button"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "←",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PocketColors.OnSurface
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (uiState.hasExistingBudget) "Edit Monthly Budget" else "Set ${uiState.monthTitle} Budget",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PocketColors.OnSurface
+                        )
+                    }
+
+                    if (uiState.hasExistingBudget) {
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .clickable { onDismiss() }
-                                .testTag("back_button"),
+                                .background(PocketColors.SurfaceContainer)
+                                .clickable { onRequestDelete() }
+                                .testTag("delete_budget_button"),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "←",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PocketColors.OnSurface
+                                text = "🗑",
+                                color = PocketColors.Expense,
+                                fontSize = 18.sp
                             )
                         }
                     }
-                    Text(
-                        text = "Set ${uiState.monthTitle} Budget",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PocketColors.OnSurface
-                    )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -348,7 +406,7 @@ fun SetBudgetContent(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Primary Save & Apply Budget Button
+                // Primary Save Button
                 Button(
                     onClick = onSaveClick,
                     modifier = Modifier
@@ -357,16 +415,67 @@ fun SetBudgetContent(
                         .testTag("save_budget_button"),
                     colors = ButtonDefaults.buttonColors(containerColor = PocketColors.Primary),
                     shape = CircleShape,
-                    enabled = !uiState.isSaving
+                    enabled = !uiState.isSaving && !uiState.isDeleting
                 ) {
                     Text(
-                        text = if (uiState.isSaving) "Saving..." else "Save & Apply Budget",
+                        text = if (uiState.isSaving) {
+                            "Saving..."
+                        } else if (uiState.hasExistingBudget) {
+                            "Save Changes"
+                        } else {
+                            "Save & Apply Budget"
+                        },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PocketColors.OnPrimary
                     )
                 }
             }
+        }
+
+        // Delete Confirmation Dialog
+        if (uiState.showDeleteConfirmation) {
+            AlertDialog(
+                onDismissRequest = onDismissDelete,
+                title = {
+                    Text(
+                        text = "Delete Monthly Budget?",
+                        fontWeight = FontWeight.Bold,
+                        color = PocketColors.OnSurface
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Are you sure you want to delete the budget for ${uiState.monthTitle}? This will remove the spending limit for this month.",
+                        color = PocketColors.OnSurfaceVariant
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = onConfirmDelete,
+                        modifier = Modifier.testTag("confirm_delete_button")
+                    ) {
+                        Text(
+                            text = "Delete",
+                            color = PocketColors.Expense,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = onDismissDelete,
+                        modifier = Modifier.testTag("cancel_delete_button")
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            color = PocketColors.OnSurfaceVariant
+                        )
+                    }
+                },
+                containerColor = PocketColors.SurfaceContainerLowest,
+                shape = RoundedCornerShape(20.dp)
+            )
         }
     }
 }
@@ -377,11 +486,14 @@ fun SetBudgetContentPreview() {
     SetBudgetContent(
         uiState = SetBudgetUiState(
             yearMonth = org.hoods.pocket.domain.model.YearMonth(2026, 9),
-            amountText = "3000.00"
+            amountText = "3000.00",
+            isExistingBudget = true
         ),
         onAmountChanged = {},
         onSaveClick = {},
+        onRequestDelete = {},
+        onDismissDelete = {},
+        onConfirmDelete = {},
         onDismiss = {}
     )
 }
-

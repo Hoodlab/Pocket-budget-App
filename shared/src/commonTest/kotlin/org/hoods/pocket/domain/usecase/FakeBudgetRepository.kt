@@ -20,4 +20,9 @@ class FakeBudgetRepository : BudgetRepository {
         if (shouldFail) throw IllegalStateException(failureMessage)
         budgetsFlow.value = budgetsFlow.value + (budget.yearMonth to budget)
     }
+
+    override suspend fun deleteMonthlyBudget(yearMonth: YearMonth) {
+        if (shouldFail) throw IllegalStateException(failureMessage)
+        budgetsFlow.value = budgetsFlow.value - yearMonth
+    }
 }

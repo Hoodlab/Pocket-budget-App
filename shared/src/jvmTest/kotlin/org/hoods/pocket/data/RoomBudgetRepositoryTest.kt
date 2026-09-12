@@ -95,4 +95,31 @@ class RoomBudgetRepositoryTest {
         assertEquals(budget, retrieved)
         tempFile.delete()
     }
+
+    @Test
+    fun deleteMonthlyBudget_removesSavedBudgetAndEmitsNull() = runTest {
+        val targetMonth = YearMonth(2026, 9)
+        val budget = MonthlyBudget(targetMonth, 120000L)
+
+        repository.setMonthlyBudget(budget)
+        val saved = repository.getMonthlyBudget(targetMonth).first()
+        assertEquals(budget, saved)
+
+        repository.deleteMonthlyBudget(targetMonth)
+
+        val afterDelete = repository.getMonthlyBudget(targetMonth).first()
+        assertNull(afterDelete)
+    }
+
+    @Test
+    fun setMonthlyBudget_replacesExistingWithoutDuplicate() = runTest {
+        val targetMonth = YearMonth(2026, 9)
+
+        repository.setMonthlyBudget(MonthlyBudget(targetMonth, 100000L))
+        repository.setMonthlyBudget(MonthlyBudget(targetMonth, 150000L))
+
+        val allBudgets = database.budgetDao().getAllBudgets().first()
+        assertEquals(1, allBudgets.size)
+        assertEquals(150000L, allBudgets[0].limitAmount)
+    }
 }

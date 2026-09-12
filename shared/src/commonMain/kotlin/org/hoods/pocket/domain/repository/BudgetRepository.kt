@@ -7,4 +7,5 @@ import org.hoods.pocket.domain.model.YearMonth
 interface BudgetRepository {
     fun getMonthlyBudget(yearMonth: YearMonth): Flow<MonthlyBudget?>
     suspend fun setMonthlyBudget(budget: MonthlyBudget)
+    suspend fun deleteMonthlyBudget(yearMonth: YearMonth)
 }

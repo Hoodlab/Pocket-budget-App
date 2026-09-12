@@ -17,4 +17,8 @@ class InMemoryBudgetRepository : BudgetRepository {
     override suspend fun setMonthlyBudget(budget: MonthlyBudget) {
         budgets.value = budgets.value + (budget.yearMonth to budget)
     }
+
+    override suspend fun deleteMonthlyBudget(yearMonth: YearMonth) {
+        budgets.value = budgets.value - yearMonth
+    }
 }
