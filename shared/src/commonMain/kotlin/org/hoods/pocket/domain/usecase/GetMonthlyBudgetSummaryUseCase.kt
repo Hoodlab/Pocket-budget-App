@@ -28,8 +28,8 @@ class GetMonthlyBudgetSummaryUseCase(
             }
             val status = if (budget != null) {
                 when {
-                    progress > 1.0f -> BudgetHealthStatus.OVER_BUDGET
-                    progress >= 0.8f -> BudgetHealthStatus.NEAR_LIMIT
+                    totalExpense > budget.limitAmount -> BudgetHealthStatus.OVER_BUDGET
+                    totalExpense * 10L >= budget.limitAmount * 8L -> BudgetHealthStatus.NEAR_LIMIT
                     else -> BudgetHealthStatus.ON_TRACK
                 }
             } else {

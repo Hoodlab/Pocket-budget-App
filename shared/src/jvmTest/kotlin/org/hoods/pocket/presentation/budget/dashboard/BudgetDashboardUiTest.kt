@@ -118,6 +118,48 @@ class BudgetDashboardUiTest {
     }
 
     @Test
+    fun budgetDashboard_displaysTwentyPercentUsed_forTenThousandBudgetWithTwoThousandExpense() = runComposeUiTest {
+        val budgetRepository = FakeBudgetRepository()
+        val transactionRepository = FakeTransactionRepository()
+        val targetMonth = YearMonth(2026, 9)
+
+        // $100.00 budget (10000 cents)
+        budgetRepository.setMonthlyBudget(MonthlyBudget(targetMonth, 10000L))
+
+        // $20.00 expense (2000 cents)
+        transactionRepository.insertTransaction(
+            Transaction(
+                id = "tx-1",
+                description = "Lunch",
+                amount = 2000L,
+                type = TransactionType.EXPENSE,
+                date = Instant.parse("2026-09-10T12:00:00Z")
+            )
+        )
+
+        val useCase = GetMonthlyBudgetSummaryUseCase(budgetRepository, transactionRepository)
+
+        setContent {
+            val viewModel = BudgetDashboardViewModel(
+                getMonthlyBudgetSummaryUseCase = useCase,
+                initialMonth = targetMonth
+            )
+            BudgetDashboardScreen(
+                viewModel = viewModel,
+                onSetBudgetClick = {},
+                onNavigateToTransactions = {}
+            )
+        }
+
+        waitForIdle()
+
+        onNodeWithText("20% Used").assertIsDisplayed()
+        onNodeWithText("$20.00", substring = true).assertIsDisplayed()
+        onNodeWithText("/ $100.00", substring = true).assertIsDisplayed()
+        onNodeWithText("$80.00 left").assertIsDisplayed()
+    }
+
+    @Test
     fun monthBrowsing_navigatesMonthsAndShowsMonthSpecificBudget() = runComposeUiTest {
         val budgetRepository = FakeBudgetRepository()
         val transactionRepository = FakeTransactionRepository()

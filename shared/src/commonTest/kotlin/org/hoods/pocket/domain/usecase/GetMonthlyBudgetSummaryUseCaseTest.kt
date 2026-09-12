@@ -106,4 +106,25 @@ class GetMonthlyBudgetSummaryUseCaseTest {
         assertEquals(1.25f, summary.progress, 0.001f)
         assertEquals(BudgetHealthStatus.OVER_BUDGET, summary.status)
     }
+
+    @Test
+    fun budgetProgress_calculatesCorrectRatioSpentAndRemaining_forTenThousandBudgetAndTwoThousandExpense() = runTest {
+        val budgetRepository = FakeBudgetRepository()
+        val transactionRepository = FakeTransactionRepository()
+        val useCase = GetMonthlyBudgetSummaryUseCase(budgetRepository, transactionRepository)
+        val targetMonth = YearMonth(2026, 9)
+
+        budgetRepository.setMonthlyBudget(MonthlyBudget(targetMonth, 10000L))
+        transactionRepository.insertTransaction(
+            Transaction("1", "Coffee", 2000L, TransactionType.EXPENSE, Instant.parse("2026-09-10T12:00:00Z"))
+        )
+
+        val summary = useCase(targetMonth).first()
+
+        assertEquals(10000L, summary.budget?.limitAmount)
+        assertEquals(2000L, summary.totalExpense)
+        assertEquals(8000L, summary.remainingAmount)
+        assertEquals(0.2f, summary.progress)
+        assertEquals(BudgetHealthStatus.ON_TRACK, summary.status)
+    }
 }

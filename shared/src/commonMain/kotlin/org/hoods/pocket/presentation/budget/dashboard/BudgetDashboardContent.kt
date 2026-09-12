@@ -43,6 +43,7 @@ import org.hoods.pocket.domain.util.MoneyParser
 import org.hoods.pocket.presentation.theme.PocketColors
 import androidx.compose.ui.tooling.preview.Preview
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @Composable
 fun BudgetDashboardContent(
@@ -329,7 +330,7 @@ fun BudgetDashboardContent(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(text = "0%", fontSize = 12.sp, color = PocketColors.OnSurfaceVariant)
-                                    val percentUsed = (summary.progress * 100).toInt()
+                                    val percentUsed = (summary.progress * 100).roundToInt()
                                     Text(text = "$percentUsed% Used", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PocketColors.OnSurfaceVariant)
                                 }
 
@@ -564,7 +565,7 @@ fun BudgetDashboardContent(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(text = "0%", fontSize = 12.sp, color = PocketColors.OnSurfaceVariant)
-                                val percentUsed = (summary.progress * 100).toInt()
+                                val percentUsed = (summary.progress * 100).roundToInt()
                                 Text(text = "$percentUsed% Used", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PocketColors.OnSurfaceVariant)
                             }
 
