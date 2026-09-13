@@ -16,6 +16,7 @@ import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import org.hoods.pocket.domain.model.Transaction
+import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.usecase.AddTransactionUseCase
 import org.hoods.pocket.domain.util.DateUtils
@@ -43,7 +44,24 @@ class AddTransactionViewModel(
     val events: Flow<AddTransactionEvent> = _events.receiveAsFlow()
 
     fun onTypeSelected(type: TransactionType) {
-        _uiState.update { it.copy(selectedType = type, errorMessage = null) }
+        _uiState.update { current ->
+            val newCategory = if (current.selectedCategory.isValidFor(type)) {
+                current.selectedCategory
+            } else {
+                TransactionCategory.UNCATEGORIZED
+            }
+            current.copy(
+                selectedType = type,
+                selectedCategory = newCategory,
+                errorMessage = null
+            )
+        }
+    }
+
+    fun onCategorySelected(category: TransactionCategory) {
+        if (category.isValidFor(_uiState.value.selectedType)) {
+            _uiState.update { it.copy(selectedCategory = category, errorMessage = null) }
+        }
     }
 
     fun onDescriptionChanged(description: String) {
@@ -95,6 +113,7 @@ class AddTransactionViewModel(
             description = currentState.description.trim(),
             amount = cents,
             type = currentState.selectedType,
+            category = currentState.selectedCategory,
             date = currentState.selectedDate
         )
 

@@ -42,35 +42,38 @@ class TransactionJourneyUiTest {
         onNodeWithTag("add_transaction_fab").performClick()
         waitForIdle()
 
-        // 3. Add Screen: Default date is Today; fill details and submit
+        // 3. Add Screen: Default date is Today; select Groceries category, fill details and submit
         onNodeWithTag("date_picker_button").assertIsDisplayed()
         onNodeWithText("Today", substring = true).assertIsDisplayed()
         onNodeWithTag("description_input").assertIsDisplayed()
-        onNodeWithTag("description_input").performTextInput("Groceries")
+        onNodeWithTag("description_input").performTextInput("Whole Foods")
         onNodeWithTag("amount_input").performTextInput("45.50")
+        onNodeWithTag("category_chip_groceries").performClick()
         onNodeWithTag("save_transaction_button").performClick()
         waitForIdle()
 
-        // 4. Return to List: Verify added transaction appears in current month
-        onNodeWithText("Groceries").assertIsDisplayed()
+        // 4. Return to List: Verify added transaction and category appear in current month
+        onNodeWithText("Whole Foods").assertIsDisplayed()
         onNodeWithText("-$45.50").assertIsDisplayed()
+        onNodeWithText("Groceries", substring = true).assertIsDisplayed()
 
         // 5. Month Browsing: Navigate to previous month, verify filtering, and return to current
         onNodeWithTag("previous_month_button").performClick()
         waitForIdle()
         onNodeWithText(prevMonth.format()).assertIsDisplayed()
-        onNodeWithText("Groceries").assertDoesNotExist()
+        onNodeWithText("Whole Foods").assertDoesNotExist()
         onNodeWithTag("current_month_button").assertIsDisplayed()
 
         onNodeWithTag("current_month_button").performClick()
         waitForIdle()
         onNodeWithText(currentMonth.format()).assertIsDisplayed()
-        onNodeWithText("Groceries").assertIsDisplayed()
+        onNodeWithText("Whole Foods").assertIsDisplayed()
 
         var txId = ""
         runTest {
             val list = repository.getTransactions().first()
             assertEquals(1, list.size)
+            assertEquals(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, list.first().category)
             txId = list.first().id
         }
 
@@ -78,11 +81,14 @@ class TransactionJourneyUiTest {
         onNodeWithTag("transaction_item_$txId").performClick()
         waitForIdle()
 
-        // 7. Edit Screen: Verify pre-filled data & stored date, modify values, and save
+        // 7. Edit Screen: Verify pre-filled data & category, change category to Dining, modify values, and save
         onNodeWithTag("date_picker_button").assertIsDisplayed()
+        onNodeWithTag("category_chip_groceries").assertIsDisplayed()
+        onNodeWithTag("category_chip_dining").performClick()
+
         onNodeWithTag("description_input").assertIsDisplayed()
         onNodeWithTag("description_input").performTextClearance()
-        onNodeWithTag("description_input").performTextInput("Weekly Groceries")
+        onNodeWithTag("description_input").performTextInput("Weekly Dining")
 
         onNodeWithTag("amount_input").performTextClearance()
         onNodeWithTag("amount_input").performTextInput("52.00")
@@ -90,14 +96,16 @@ class TransactionJourneyUiTest {
         onNodeWithTag("save_changes_button").performClick()
         waitForIdle()
 
-        // 8. Return to List: Verify updated description and amount, without duplicate records
-        onNodeWithText("Weekly Groceries").assertIsDisplayed()
+        // 8. Return to List: Verify updated description, amount, and category, without duplicate records
+        onNodeWithText("Weekly Dining").assertIsDisplayed()
         onNodeWithText("-$52.00").assertIsDisplayed()
+        onNodeWithText("Dining", substring = true).assertIsDisplayed()
         runTest {
             val list = repository.getTransactions().first()
             assertEquals(1, list.size)
-            assertEquals("Weekly Groceries", list.first().description)
+            assertEquals("Weekly Dining", list.first().description)
             assertEquals(5200L, list.first().amount)
+            assertEquals(org.hoods.pocket.domain.model.TransactionCategory.DINING, list.first().category)
         }
 
         // 9. Open Edit again for Deletion

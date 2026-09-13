@@ -26,6 +26,7 @@ fun AddTransactionScreen(
     AddTransactionContent(
         uiState = uiState,
         onTypeSelected = viewModel::onTypeSelected,
+        onCategorySelected = viewModel::onCategorySelected,
         onDescriptionChanged = viewModel::onDescriptionChanged,
         onAmountChanged = viewModel::onAmountChanged,
         onSaveClick = viewModel::saveTransaction,

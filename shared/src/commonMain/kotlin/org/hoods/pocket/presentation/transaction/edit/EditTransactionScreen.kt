@@ -40,6 +40,7 @@ fun EditTransactionScreen(
         EditTransactionContent(
             uiState = uiState,
             onTypeSelected = viewModel::onTypeSelected,
+            onCategorySelected = viewModel::onCategorySelected,
             onDescriptionChanged = viewModel::onDescriptionChanged,
             onAmountChanged = viewModel::onAmountChanged,
             onRequestDelete = viewModel::requestDelete,

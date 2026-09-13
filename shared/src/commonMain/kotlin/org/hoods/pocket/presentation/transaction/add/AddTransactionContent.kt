@@ -46,8 +46,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.presentation.theme.PocketColors
+import org.hoods.pocket.presentation.transaction.CategorySelector
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +57,7 @@ import kotlin.time.Instant
 fun AddTransactionContent(
     uiState: AddTransactionUiState,
     onTypeSelected: (TransactionType) -> Unit,
+    onCategorySelected: (TransactionCategory) -> Unit = {},
     onDescriptionChanged: (String) -> Unit,
     onAmountChanged: (String) -> Unit,
     onSaveClick: () -> Unit,
@@ -331,6 +334,14 @@ fun AddTransactionContent(
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                        CategorySelector(
+                            selectedType = uiState.selectedType,
+                            selectedCategory = uiState.selectedCategory,
+                            onCategorySelected = onCategorySelected,
+                            isDesktop = true
+                        )
 
                         if (uiState.errorMessage != null) {
                             Spacer(modifier = Modifier.height(16.dp))
@@ -619,6 +630,15 @@ fun AddTransactionContent(
                                 color = PocketColors.OnSurfaceVariant
                             )
                         }
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        CategorySelector(
+                            selectedType = uiState.selectedType,
+                            selectedCategory = uiState.selectedCategory,
+                            onCategorySelected = onCategorySelected,
+                            isDesktop = false
+                        )
                     }
                 }
 

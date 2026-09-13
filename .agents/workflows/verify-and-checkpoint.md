@@ -29,6 +29,17 @@ Use this workflow before creating a commit.
 - If specific targeted tests were run during a test-first cycle, also include their RED -> GREEN results.
 - Report each check as PASS, FAIL, or NOT RUN based on the verification gate summary.
 
+## Reviewer Agent Evaluations
+
+Invoke the four focused reviewer agents concurrently (`invoke_subagent`):
+- **Scope Reviewer** (`scope_reviewer`)
+- **Architecture Reviewer** (`architecture_reviewer`)
+- **Domain Reviewer** (`domain_reviewer`)
+- **TDD & Evidence Reviewer** (`tdd_evidence_reviewer`)
+
+Reviewers inspect the active contract, project rules, `git diff`, changed files, and the shared verification gate output. They do not edit files or rerun the full test suite.
+Ensure all four reviewers return **`APPROVE`** before requesting developer approval. If any reviewer returns `REJECT`, resolve the required actions first.
+
 ## Report before changing Git state
 
 Report:
@@ -36,6 +47,8 @@ Report:
 - files changed
 - whether the work stays inside the active contract
 - verification results (from the verification gate)
+- reviewer verdicts (`APPROVE` / `REJECT` from Scope, Architecture, Domain, TDD/Evidence)
+- any noted Known Debt (non-blocking)
 - limitations or unverified targets
 - files that belong in the checkpoint
 - a proposed commit message

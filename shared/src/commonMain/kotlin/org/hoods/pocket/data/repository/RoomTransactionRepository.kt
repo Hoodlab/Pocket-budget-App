@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.map
 import org.hoods.pocket.data.local.dao.TransactionDao
 import org.hoods.pocket.data.local.entity.TransactionEntity
 import org.hoods.pocket.domain.model.Transaction
+import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.repository.TransactionRepository
 import kotlin.time.Instant
@@ -21,7 +22,8 @@ class RoomTransactionRepository(
                     description = entity.description,
                     amount = entity.amount,
                     type = TransactionType.valueOf(entity.type),
-                    date = Instant.fromEpochMilliseconds(entity.dateEpochMillis)
+                    date = Instant.fromEpochMilliseconds(entity.dateEpochMillis),
+                    category = TransactionCategory.fromName(entity.category)
                 )
             }
         }
@@ -35,7 +37,8 @@ class RoomTransactionRepository(
                     description = entity.description,
                     amount = entity.amount,
                     type = TransactionType.valueOf(entity.type),
-                    date = Instant.fromEpochMilliseconds(entity.dateEpochMillis)
+                    date = Instant.fromEpochMilliseconds(entity.dateEpochMillis),
+                    category = TransactionCategory.fromName(entity.category)
                 )
             }
         }
@@ -52,7 +55,8 @@ class RoomTransactionRepository(
                 description = transaction.description,
                 amount = transaction.amount,
                 type = transaction.type.name,
-                dateEpochMillis = transaction.date.toEpochMilliseconds()
+                dateEpochMillis = transaction.date.toEpochMilliseconds(),
+                category = transaction.category.name
             )
         )
     }
@@ -64,7 +68,8 @@ class RoomTransactionRepository(
                 description = transaction.description,
                 amount = transaction.amount,
                 type = transaction.type.name,
-                dateEpochMillis = transaction.date.toEpochMilliseconds()
+                dateEpochMillis = transaction.date.toEpochMilliseconds(),
+                category = transaction.category.name
             )
         )
     }
@@ -80,7 +85,8 @@ class RoomTransactionRepository(
             description = entity.description,
             amount = entity.amount,
             type = TransactionType.valueOf(entity.type),
-            date = Instant.fromEpochMilliseconds(entity.dateEpochMillis)
+            date = Instant.fromEpochMilliseconds(entity.dateEpochMillis),
+            category = TransactionCategory.fromName(entity.category)
         )
     }
 }

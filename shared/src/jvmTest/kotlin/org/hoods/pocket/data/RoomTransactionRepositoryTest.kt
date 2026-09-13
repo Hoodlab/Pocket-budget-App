@@ -123,6 +123,80 @@ class RoomTransactionRepositoryTest {
     }
 
     @Test
+    fun insertTransaction_withExplicitCategory_persistsAndRetrievesCategory() = runTest {
+        val transaction = Transaction(
+            id = "tx-cat-1",
+            description = "Trader Joe's",
+            amount = 6750L,
+            type = TransactionType.EXPENSE,
+            date = Instant.fromEpochMilliseconds(1717171717000L),
+            category = org.hoods.pocket.domain.model.TransactionCategory.GROCERIES
+        )
+
+        repository.insertTransaction(transaction)
+
+        val retrieved = repository.getTransactionById("tx-cat-1")
+        assertEquals(transaction, retrieved)
+        assertEquals(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, retrieved?.category)
+    }
+
+    @Test
+    fun updateTransaction_modifiesCategoryInPlaceWithoutDuplication() = runTest {
+        val original = Transaction(
+            id = "tx-cat-2",
+            description = "Dinner with friends",
+            amount = 8900L,
+            type = TransactionType.EXPENSE,
+            date = Instant.fromEpochMilliseconds(1717171717000L),
+            category = org.hoods.pocket.domain.model.TransactionCategory.UNCATEGORIZED
+        )
+        repository.insertTransaction(original)
+
+        val updated = original.copy(category = org.hoods.pocket.domain.model.TransactionCategory.DINING)
+        repository.updateTransaction(updated)
+
+        val all = repository.getTransactions().first()
+        assertEquals(1, all.size)
+        assertEquals(org.hoods.pocket.domain.model.TransactionCategory.DINING, all.first().category)
+    }
+
+    @Test
+    fun persistsCategoryAcrossDatabaseReopen() = runTest {
+        val tempFile = java.io.File.createTempFile("pocket_budget_cat_restart", ".db")
+        try {
+            val db1 = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
+                .setDriver(BundledSQLiteDriver())
+                .addMigrations(org.hoods.pocket.data.local.database.MIGRATION_2_3)
+                .build()
+            val repo1 = RoomTransactionRepository(db1.transactionDao())
+
+            val tx = Transaction(
+                id = "tx-restart-cat",
+                description = "Bus pass",
+                amount = 2500L,
+                type = TransactionType.EXPENSE,
+                date = Instant.fromEpochMilliseconds(1717171717000L),
+                category = org.hoods.pocket.domain.model.TransactionCategory.TRANSPORT
+            )
+            repo1.insertTransaction(tx)
+            db1.close()
+
+            val db2 = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
+                .setDriver(BundledSQLiteDriver())
+                .addMigrations(org.hoods.pocket.data.local.database.MIGRATION_2_3)
+                .build()
+            val repo2 = RoomTransactionRepository(db2.transactionDao())
+
+            val recovered = repo2.getTransactionById("tx-restart-cat")
+            assertEquals(tx, recovered)
+            assertEquals(org.hoods.pocket.domain.model.TransactionCategory.TRANSPORT, recovered?.category)
+            db2.close()
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
     fun updateTransaction_modifiesExistingRecordWithoutDuplication() = runTest {
         val original = Transaction(
             id = "tx-update-1",

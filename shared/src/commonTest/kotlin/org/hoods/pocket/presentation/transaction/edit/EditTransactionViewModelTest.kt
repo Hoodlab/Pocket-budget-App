@@ -222,4 +222,91 @@ class EditTransactionViewModelTest {
         assertFalse(state.isDeleting)
         assertNotNull(state.initialTransaction)
     }
+
+    @Test
+    fun `loadTransaction sets selectedCategory from saved transaction`() = runTest {
+        val tx = Transaction(
+            id = "tx-cat-1",
+            description = "Groceries run",
+            amount = 4500L,
+            type = TransactionType.EXPENSE,
+            category = org.hoods.pocket.domain.model.TransactionCategory.GROCERIES,
+            date = Instant.parse("2024-05-31T16:08:37Z")
+        )
+        repository.insertTransaction(tx)
+
+        val viewModel = createViewModel()
+        viewModel.loadTransaction("tx-cat-1")
+        advanceUntilIdle()
+
+        assertEquals(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, viewModel.uiState.value.selectedCategory)
+    }
+
+    @Test
+    fun `onCategorySelected updates selectedCategory`() = runTest {
+        val tx = Transaction(
+            id = "tx-cat-2",
+            description = "Dinner",
+            amount = 3500L,
+            type = TransactionType.EXPENSE,
+            category = org.hoods.pocket.domain.model.TransactionCategory.UNCATEGORIZED,
+            date = Instant.parse("2024-05-31T16:08:37Z")
+        )
+        repository.insertTransaction(tx)
+
+        val viewModel = createViewModel()
+        viewModel.loadTransaction("tx-cat-2")
+        advanceUntilIdle()
+
+        viewModel.onCategorySelected(org.hoods.pocket.domain.model.TransactionCategory.DINING)
+        assertEquals(org.hoods.pocket.domain.model.TransactionCategory.DINING, viewModel.uiState.value.selectedCategory)
+    }
+
+    @Test
+    fun `onTypeSelected resets selectedCategory if invalid for new type`() = runTest {
+        val tx = Transaction(
+            id = "tx-cat-3",
+            description = "Dinner",
+            amount = 3500L,
+            type = TransactionType.EXPENSE,
+            category = org.hoods.pocket.domain.model.TransactionCategory.DINING,
+            date = Instant.parse("2024-05-31T16:08:37Z")
+        )
+        repository.insertTransaction(tx)
+
+        val viewModel = createViewModel()
+        viewModel.loadTransaction("tx-cat-3")
+        advanceUntilIdle()
+
+        assertEquals(org.hoods.pocket.domain.model.TransactionCategory.DINING, viewModel.uiState.value.selectedCategory)
+
+        viewModel.onTypeSelected(TransactionType.INCOME)
+        assertEquals(TransactionType.INCOME, viewModel.uiState.value.selectedType)
+        assertEquals(org.hoods.pocket.domain.model.TransactionCategory.UNCATEGORIZED, viewModel.uiState.value.selectedCategory)
+    }
+
+    @Test
+    fun `saveChanges saves updated category`() = runTest {
+        val tx = Transaction(
+            id = "tx-cat-4",
+            description = "Work",
+            amount = 500000L,
+            type = TransactionType.INCOME,
+            category = org.hoods.pocket.domain.model.TransactionCategory.UNCATEGORIZED,
+            date = Instant.parse("2024-05-31T16:08:37Z")
+        )
+        repository.insertTransaction(tx)
+
+        val viewModel = createViewModel()
+        viewModel.loadTransaction("tx-cat-4")
+        advanceUntilIdle()
+
+        viewModel.onCategorySelected(org.hoods.pocket.domain.model.TransactionCategory.SALARY)
+        viewModel.saveChanges()
+        advanceUntilIdle()
+
+        val updated = repository.getTransactionById("tx-cat-4")
+        assertNotNull(updated)
+        assertEquals(org.hoods.pocket.domain.model.TransactionCategory.SALARY, updated.category)
+    }
 }

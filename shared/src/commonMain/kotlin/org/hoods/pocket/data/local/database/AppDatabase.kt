@@ -9,7 +9,7 @@ import org.hoods.pocket.data.local.dao.TransactionDao
 import org.hoods.pocket.data.local.entity.MonthlyBudgetEntity
 import org.hoods.pocket.data.local.entity.TransactionEntity
 
-@Database(entities = [TransactionEntity::class, MonthlyBudgetEntity::class], version = 2, exportSchema = false)
+@Database(entities = [TransactionEntity::class, MonthlyBudgetEntity::class], version = 3, exportSchema = false)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.hoods.pocket.domain.model.Transaction
+import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.usecase.DeleteTransactionUseCase
 import org.hoods.pocket.domain.usecase.GetTransactionByIdUseCase
@@ -44,6 +45,7 @@ class EditTransactionViewModel(
                     it.copy(
                         initialTransaction = transaction,
                         selectedType = transaction.type,
+                        selectedCategory = transaction.category,
                         description = transaction.description,
                         amountText = MoneyParser.formatCentsToAmount(transaction.amount),
                         selectedDate = transaction.date,
@@ -65,7 +67,24 @@ class EditTransactionViewModel(
     }
 
     fun onTypeSelected(type: TransactionType) {
-        _uiState.update { it.copy(selectedType = type, errorMessage = null) }
+        _uiState.update { current ->
+            val newCategory = if (current.selectedCategory.isValidFor(type)) {
+                current.selectedCategory
+            } else {
+                TransactionCategory.UNCATEGORIZED
+            }
+            current.copy(
+                selectedType = type,
+                selectedCategory = newCategory,
+                errorMessage = null
+            )
+        }
+    }
+
+    fun onCategorySelected(category: TransactionCategory) {
+        if (category.isValidFor(_uiState.value.selectedType)) {
+            _uiState.update { it.copy(selectedCategory = category, errorMessage = null) }
+        }
     }
 
     fun onDescriptionChanged(description: String) {
@@ -125,6 +144,7 @@ class EditTransactionViewModel(
             description = currentState.description.trim(),
             amount = cents,
             type = currentState.selectedType,
+            category = currentState.selectedCategory,
             date = currentState.selectedDate ?: original.date
         )
 

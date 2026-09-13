@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import org.hoods.pocket.domain.model.Transaction
+import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.presentation.theme.PocketColors
@@ -59,6 +60,7 @@ class VisualValidationCaptureTest {
             description = "Whole Foods Market",
             amount = 4550L,
             type = TransactionType.EXPENSE,
+            category = TransactionCategory.GROCERIES,
             date = Instant.parse("2026-09-08T14:30:00Z")
         ),
         Transaction(
@@ -66,6 +68,7 @@ class VisualValidationCaptureTest {
             description = "Monthly Salary",
             amount = 320000L,
             type = TransactionType.INCOME,
+            category = TransactionCategory.SALARY,
             date = Instant.parse("2026-09-01T09:00:00Z")
         ),
         Transaction(
@@ -73,6 +76,7 @@ class VisualValidationCaptureTest {
             description = "Uber Ride",
             amount = 1850L,
             type = TransactionType.EXPENSE,
+            category = TransactionCategory.TRANSPORT,
             date = Instant.parse("2026-09-05T18:15:00Z")
         )
     )
@@ -154,6 +158,7 @@ class VisualValidationCaptureTest {
                     AddTransactionContent(
                         uiState = AddTransactionUiState(
                             selectedType = TransactionType.EXPENSE,
+                            selectedCategory = TransactionCategory.GROCERIES,
                             description = "Coffee & Bakery",
                             amountText = "12.50",
                             dateString = "Today, Sep 9, 2026"
@@ -188,6 +193,7 @@ class VisualValidationCaptureTest {
                     AddTransactionContent(
                         uiState = AddTransactionUiState(
                             selectedType = TransactionType.INCOME,
+                            selectedCategory = TransactionCategory.FREELANCE,
                             description = "Freelance Consulting",
                             amountText = "750.00",
                             dateString = "Today, Sep 9, 2026"
@@ -217,6 +223,7 @@ class VisualValidationCaptureTest {
             description = "Dinner with Friends",
             amount = 6500L,
             type = TransactionType.EXPENSE,
+            category = TransactionCategory.DINING,
             date = Instant.parse("2026-08-22T19:00:00Z")
         )
 
@@ -231,6 +238,7 @@ class VisualValidationCaptureTest {
                         uiState = EditTransactionUiState(
                             initialTransaction = tx,
                             selectedType = TransactionType.EXPENSE,
+                            selectedCategory = TransactionCategory.DINING,
                             description = "Dinner with Friends",
                             amountText = "65.00",
                             dateString = "Aug 22, 2026",
@@ -378,6 +386,7 @@ class VisualValidationCaptureTest {
                     AddTransactionContent(
                         uiState = AddTransactionUiState(
                             selectedType = TransactionType.EXPENSE,
+                            selectedCategory = TransactionCategory.SHOPPING,
                             description = "Office Supplies",
                             amountText = "85.20",
                             dateString = "Today, Sep 9, 2026"
@@ -405,6 +414,7 @@ class VisualValidationCaptureTest {
             description = "Client Lunch",
             amount = 12000L,
             type = TransactionType.EXPENSE,
+            category = TransactionCategory.DINING,
             date = Instant.parse("2026-09-04T12:30:00Z")
         )
 
@@ -419,6 +429,7 @@ class VisualValidationCaptureTest {
                         uiState = EditTransactionUiState(
                             initialTransaction = tx,
                             selectedType = TransactionType.EXPENSE,
+                            selectedCategory = TransactionCategory.DINING,
                             description = "Client Lunch",
                             amountText = "120.00",
                             dateString = "Sep 4, 2026",

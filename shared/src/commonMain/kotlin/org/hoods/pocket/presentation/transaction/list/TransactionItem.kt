@@ -22,10 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.Transaction
+import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.util.DateUtils
 import org.hoods.pocket.domain.util.MoneyParser
 import org.hoods.pocket.presentation.theme.PocketColors
+import org.hoods.pocket.presentation.transaction.icon
 
 @Composable
 fun TransactionItem(
@@ -59,7 +61,11 @@ fun TransactionItem(
         // Leading 40.dp Type Badge
         val badgeBg = if (isIncome) PocketColors.SurfaceContainer else PocketColors.SurfaceContainerHigh
         val iconColor = if (isIncome) PocketColors.Income else PocketColors.OnSurfaceVariant
-        val iconText = if (isIncome) "↑" else "↓"
+        val iconText = if (transaction.category != TransactionCategory.UNCATEGORIZED) {
+            transaction.category.icon
+        } else {
+            if (isIncome) "↑" else "↓"
+        }
 
         Box(
             modifier = Modifier
@@ -78,7 +84,7 @@ fun TransactionItem(
 
         Spacer(modifier = Modifier.width(14.dp))
 
-        // Center Content: Description and Date/Type
+        // Center Content: Description and Category/Date
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -91,7 +97,7 @@ fun TransactionItem(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "$typeLabel • $dateString",
+                text = "${transaction.category.displayName} • $dateString",
                 fontSize = 13.sp,
                 color = PocketColors.OnSurfaceVariant,
                 maxLines = 1
