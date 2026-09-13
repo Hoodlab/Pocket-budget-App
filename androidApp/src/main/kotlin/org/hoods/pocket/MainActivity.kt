@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.flow.emptyFlow
 import org.hoods.pocket.data.local.database.createBudgetRepository
+import org.hoods.pocket.data.local.database.createCategoryBudgetRepository
 import org.hoods.pocket.data.local.database.createTransactionRepository
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.repository.TransactionRepository
@@ -20,11 +21,13 @@ class MainActivity : ComponentActivity() {
 
         val repository = createTransactionRepository(applicationContext)
         val budgetRepository = createBudgetRepository(applicationContext)
+        val categoryBudgetRepository = createCategoryBudgetRepository(applicationContext)
 
         setContent {
             App(
                 repository = repository,
-                budgetRepository = budgetRepository
+                budgetRepository = budgetRepository,
+                categoryBudgetRepository = categoryBudgetRepository
             )
         }
     }

@@ -3,11 +3,17 @@ package org.hoods.pocket.presentation.budget.set
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.hoods.pocket.domain.model.CategoryBudget
 import org.hoods.pocket.domain.model.MonthlyBudget
+import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.domain.usecase.DeleteMonthlyBudgetUseCase
 import org.hoods.pocket.domain.usecase.FakeBudgetRepository
+import org.hoods.pocket.domain.usecase.FakeCategoryBudgetRepository
+import org.hoods.pocket.domain.usecase.GetCategoryBudgetsUseCase
 import org.hoods.pocket.domain.usecase.GetMonthlyBudgetUseCase
+import org.hoods.pocket.domain.usecase.RemoveCategoryBudgetUseCase
+import org.hoods.pocket.domain.usecase.SaveCategoryAllocationsUseCase
 import org.hoods.pocket.domain.usecase.SetMonthlyBudgetUseCase
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -226,5 +232,151 @@ class SetBudgetViewModelTest {
         viewModel.onAmountChanged("500")
         assertNull(viewModel.uiState.value.errorMessage)
         assertEquals("500", viewModel.uiState.value.amountText)
+    }
+
+    @Test
+    fun `categoryAllocations_calculatesRemainingAmountInCents`() = runTest {
+        val targetMonth = YearMonth(2026, 8)
+        val viewModel = SetBudgetViewModel(
+            setMonthlyBudgetUseCase = SetMonthlyBudgetUseCase(FakeBudgetRepository()),
+            getMonthlyBudgetUseCase = GetMonthlyBudgetUseCase(FakeBudgetRepository()),
+            deleteMonthlyBudgetUseCase = DeleteMonthlyBudgetUseCase(FakeBudgetRepository()),
+            yearMonth = targetMonth,
+            coroutineScope = this
+        )
+
+        viewModel.onAmountChanged("3000.00") // $3,000.00 = 300,000 cents
+        assertEquals(300000L, viewModel.uiState.value.totalBudgetCents)
+        assertEquals(300000L, viewModel.uiState.value.remainingCents)
+
+        // Allocate $600 to Groceries
+        viewModel.onCategoryAllocationChanged(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, "600.00")
+        assertEquals(60000L, viewModel.uiState.value.totalAllocatedCents)
+        assertEquals(240000L, viewModel.uiState.value.remainingCents) // $2,400.00 left
+
+        // Allocate $400 to Dining
+        viewModel.onCategoryAllocationChanged(org.hoods.pocket.domain.model.TransactionCategory.DINING, "400.00")
+        assertEquals(100000L, viewModel.uiState.value.totalAllocatedCents)
+        assertEquals(200000L, viewModel.uiState.value.remainingCents) // $2,000.00 left
+    }
+
+    @Test
+    fun `overAllocation_flagsIsOverAllocatedAndPreventsSave`() = runTest {
+        val budgetRepo = FakeBudgetRepository()
+        val categoryRepo = FakeCategoryBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+
+        val viewModel = SetBudgetViewModel(
+            setMonthlyBudgetUseCase = SetMonthlyBudgetUseCase(budgetRepo),
+            getMonthlyBudgetUseCase = GetMonthlyBudgetUseCase(budgetRepo),
+            deleteMonthlyBudgetUseCase = DeleteMonthlyBudgetUseCase(budgetRepo),
+            getCategoryBudgetsUseCase = GetCategoryBudgetsUseCase(categoryRepo),
+            saveCategoryAllocationsUseCase = SaveCategoryAllocationsUseCase(budgetRepo, categoryRepo),
+            removeCategoryBudgetUseCase = RemoveCategoryBudgetUseCase(categoryRepo),
+            yearMonth = targetMonth,
+            coroutineScope = this
+        )
+
+        viewModel.onAmountChanged("1000.00") // $1,000.00
+        viewModel.onCategoryAllocationChanged(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, "700.00")
+        viewModel.onCategoryAllocationChanged(org.hoods.pocket.domain.model.TransactionCategory.DINING, "500.00") // Total $1,200.00 > $1,000.00
+
+        assertTrue(viewModel.uiState.value.isOverAllocated)
+        assertEquals(20000L, viewModel.uiState.value.overAllocatedCents) // $200.00 over
+
+        viewModel.saveBudget()
+
+        assertNotNull(viewModel.uiState.value.errorMessage)
+        assertTrue(viewModel.uiState.value.errorMessage!!.contains("exceed", ignoreCase = true))
+        assertNull(budgetRepo.getMonthlyBudget(targetMonth).first())
+    }
+
+    @Test
+    fun `saveBudget_withCategoryAllocations_savesBothAndEmitsSaveSuccess`() = runTest {
+        val budgetRepo = FakeBudgetRepository()
+        val categoryRepo = FakeCategoryBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+
+        val viewModel = SetBudgetViewModel(
+            setMonthlyBudgetUseCase = SetMonthlyBudgetUseCase(budgetRepo),
+            getMonthlyBudgetUseCase = GetMonthlyBudgetUseCase(budgetRepo),
+            deleteMonthlyBudgetUseCase = DeleteMonthlyBudgetUseCase(budgetRepo),
+            getCategoryBudgetsUseCase = GetCategoryBudgetsUseCase(categoryRepo),
+            saveCategoryAllocationsUseCase = SaveCategoryAllocationsUseCase(budgetRepo, categoryRepo),
+            removeCategoryBudgetUseCase = RemoveCategoryBudgetUseCase(categoryRepo),
+            yearMonth = targetMonth,
+            coroutineScope = this
+        )
+
+        viewModel.onAmountChanged("2000.00")
+        viewModel.onCategoryAllocationChanged(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, "600.00")
+        viewModel.onCategoryAllocationChanged(org.hoods.pocket.domain.model.TransactionCategory.DINING, "400.00")
+
+        viewModel.saveBudget()
+
+        val event = viewModel.events.first()
+        assertEquals(SetBudgetEvent.SaveSuccess, event)
+
+        val savedMonthly = budgetRepo.getMonthlyBudget(targetMonth).first()
+        assertNotNull(savedMonthly)
+        assertEquals(200000L, savedMonthly.limitAmount)
+
+        val savedCategories = categoryRepo.getCategoryBudgets(targetMonth).first()
+        assertEquals(2, savedCategories.size)
+        assertEquals(60000L, savedCategories.find { it.category == org.hoods.pocket.domain.model.TransactionCategory.GROCERIES }?.limitAmount)
+        assertEquals(40000L, savedCategories.find { it.category == org.hoods.pocket.domain.model.TransactionCategory.DINING }?.limitAmount)
+    }
+
+    @Test
+    fun `onResetAllocations_clearsAllAllocations`() = runTest {
+        val targetMonth = YearMonth(2026, 8)
+        val viewModel = SetBudgetViewModel(
+            setMonthlyBudgetUseCase = SetMonthlyBudgetUseCase(FakeBudgetRepository()),
+            getMonthlyBudgetUseCase = GetMonthlyBudgetUseCase(FakeBudgetRepository()),
+            deleteMonthlyBudgetUseCase = DeleteMonthlyBudgetUseCase(FakeBudgetRepository()),
+            yearMonth = targetMonth,
+            coroutineScope = this
+        )
+
+        viewModel.onCategoryAllocationChanged(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, "500.00")
+        viewModel.onCategoryAllocationChanged(org.hoods.pocket.domain.model.TransactionCategory.DINING, "300.00")
+        assertEquals(2, viewModel.uiState.value.categoryAllocations.size)
+
+        viewModel.onResetAllocations()
+        assertTrue(viewModel.uiState.value.categoryAllocations.isEmpty())
+        assertEquals(0L, viewModel.uiState.value.totalAllocatedCents)
+    }
+
+    @Test
+    fun `existingCategoryBudgets_areLoadedIntoUiState`() = runTest {
+        val budgetRepo = FakeBudgetRepository()
+        val categoryRepo = FakeCategoryBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+
+        budgetRepo.setMonthlyBudget(org.hoods.pocket.domain.model.MonthlyBudget(targetMonth, 250000L))
+        categoryRepo.setCategoryBudget(
+            org.hoods.pocket.domain.model.CategoryBudget(targetMonth, org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, 60000L)
+        )
+        categoryRepo.setCategoryBudget(
+            org.hoods.pocket.domain.model.CategoryBudget(targetMonth, org.hoods.pocket.domain.model.TransactionCategory.TRANSPORT, 20000L)
+        )
+
+        val viewModel = SetBudgetViewModel(
+            setMonthlyBudgetUseCase = SetMonthlyBudgetUseCase(budgetRepo),
+            getMonthlyBudgetUseCase = GetMonthlyBudgetUseCase(budgetRepo),
+            deleteMonthlyBudgetUseCase = DeleteMonthlyBudgetUseCase(budgetRepo),
+            getCategoryBudgetsUseCase = GetCategoryBudgetsUseCase(categoryRepo),
+            saveCategoryAllocationsUseCase = SaveCategoryAllocationsUseCase(budgetRepo, categoryRepo),
+            removeCategoryBudgetUseCase = RemoveCategoryBudgetUseCase(categoryRepo),
+            yearMonth = targetMonth,
+            coroutineScope = this
+        )
+        advanceUntilIdle()
+
+        assertEquals("2500.00", viewModel.uiState.value.amountText)
+        assertEquals("600.00", viewModel.uiState.value.categoryAllocations[org.hoods.pocket.domain.model.TransactionCategory.GROCERIES])
+        assertEquals("200.00", viewModel.uiState.value.categoryAllocations[org.hoods.pocket.domain.model.TransactionCategory.TRANSPORT])
+        assertEquals(80000L, viewModel.uiState.value.totalAllocatedCents)
+        assertEquals(170000L, viewModel.uiState.value.remainingCents)
     }
 }

@@ -12,10 +12,26 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS category_budgets (
+                year INTEGER NOT NULL,
+                month INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                limitAmount INTEGER NOT NULL,
+                PRIMARY KEY (year, month, category)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
 fun createRoomDatabase(builder: RoomDatabase.Builder<AppDatabase>): AppDatabase {
     return builder
         .setDriver(BundledSQLiteDriver())
-        .addMigrations(MIGRATION_2_3)
+        .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
         .fallbackToDestructiveMigration(true)
         .build()
 }

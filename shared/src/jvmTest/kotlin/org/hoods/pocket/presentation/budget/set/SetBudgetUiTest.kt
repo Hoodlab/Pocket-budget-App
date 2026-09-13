@@ -12,10 +12,15 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.hoods.pocket.domain.model.MonthlyBudget
+import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.domain.usecase.DeleteMonthlyBudgetUseCase
 import org.hoods.pocket.domain.usecase.FakeBudgetRepository
+import org.hoods.pocket.domain.usecase.FakeCategoryBudgetRepository
+import org.hoods.pocket.domain.usecase.GetCategoryBudgetsUseCase
 import org.hoods.pocket.domain.usecase.GetMonthlyBudgetUseCase
+import org.hoods.pocket.domain.usecase.RemoveCategoryBudgetUseCase
+import org.hoods.pocket.domain.usecase.SaveCategoryAllocationsUseCase
 import org.hoods.pocket.domain.usecase.SetMonthlyBudgetUseCase
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -292,5 +297,159 @@ class SetBudgetUiTest {
         waitForIdle()
 
         assertTrue(dismissed)
+    }
+
+    @Test
+    fun categoryAllocations_validInput_updatesRemainingPillAndPersistsUponSave() = runComposeUiTest {
+        val budgetRepo = FakeBudgetRepository()
+        val categoryRepo = FakeCategoryBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+        var saved = false
+
+        setContent {
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = SetMonthlyBudgetUseCase(budgetRepo),
+                getMonthlyBudgetUseCase = GetMonthlyBudgetUseCase(budgetRepo),
+                deleteMonthlyBudgetUseCase = DeleteMonthlyBudgetUseCase(budgetRepo),
+                getCategoryBudgetsUseCase = GetCategoryBudgetsUseCase(categoryRepo),
+                saveCategoryAllocationsUseCase = SaveCategoryAllocationsUseCase(budgetRepo, categoryRepo),
+                removeCategoryBudgetUseCase = RemoveCategoryBudgetUseCase(categoryRepo),
+                yearMonth = targetMonth
+            )
+            SetBudgetScreen(
+                viewModel = viewModel,
+                onSaveSuccess = { saved = true },
+                onDismiss = {}
+            )
+        }
+
+        waitForIdle()
+
+        // 1. Enter Total Monthly Spending Limit: $3,000.00
+        onNodeWithTag("budget_amount_input").performTextInput("3000.00")
+        waitForIdle()
+
+        // Verify remaining pill appears showing full $3,000.00
+        onNodeWithTag("remaining_allocation_text").assertIsDisplayed()
+        onNodeWithText("Remaining to Allocate: $3000.00").assertIsDisplayed()
+
+        // 2. Enter Groceries: $600.00
+        onNodeWithTag("category_allocation_input_groceries").performTextInput("600.00")
+        waitForIdle()
+
+        // Remaining to allocate updates to $2,400.00
+        onNodeWithText("Remaining to Allocate: $2400.00").assertIsDisplayed()
+
+        // 3. Enter Dining: $400.00
+        onNodeWithTag("category_allocation_input_dining").performTextInput("400.00")
+        waitForIdle()
+
+        // Remaining to allocate updates to $2,000.00
+        onNodeWithText("Remaining to Allocate: $2000.00").assertIsDisplayed()
+
+        // 4. Click Save
+        onNodeWithTag("save_budget_button").performClick()
+        waitForIdle()
+
+        assertTrue(saved)
+        runTest {
+            val monthly = budgetRepo.getMonthlyBudget(targetMonth).first()
+            assertNotNull(monthly)
+            assertEquals(300000L, monthly.limitAmount)
+
+            val categories = categoryRepo.getCategoryBudgets(targetMonth).first()
+            assertEquals(2, categories.size)
+            assertEquals(60000L, categories.find { it.category == TransactionCategory.GROCERIES }?.limitAmount)
+            assertEquals(40000L, categories.find { it.category == TransactionCategory.DINING }?.limitAmount)
+        }
+    }
+
+    @Test
+    fun categoryAllocations_overAllocation_displaysErrorBannerAndPreventsSave() = runComposeUiTest {
+        val budgetRepo = FakeBudgetRepository()
+        val categoryRepo = FakeCategoryBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+        var saved = false
+
+        setContent {
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = SetMonthlyBudgetUseCase(budgetRepo),
+                getMonthlyBudgetUseCase = GetMonthlyBudgetUseCase(budgetRepo),
+                deleteMonthlyBudgetUseCase = DeleteMonthlyBudgetUseCase(budgetRepo),
+                getCategoryBudgetsUseCase = GetCategoryBudgetsUseCase(categoryRepo),
+                saveCategoryAllocationsUseCase = SaveCategoryAllocationsUseCase(budgetRepo, categoryRepo),
+                removeCategoryBudgetUseCase = RemoveCategoryBudgetUseCase(categoryRepo),
+                yearMonth = targetMonth
+            )
+            SetBudgetScreen(
+                viewModel = viewModel,
+                onSaveSuccess = { saved = true },
+                onDismiss = {}
+            )
+        }
+
+        waitForIdle()
+
+        // Total Limit: $1,000.00
+        onNodeWithTag("budget_amount_input").performTextInput("1000.00")
+        waitForIdle()
+
+        // Groceries: $700.00
+        onNodeWithTag("category_allocation_input_groceries").performTextInput("700.00")
+        waitForIdle()
+
+        // Dining: $500.00 ($700 + $500 = $1,200 > $1,000)
+        onNodeWithTag("category_allocation_input_dining").performTextInput("500.00")
+        waitForIdle()
+
+        // Over-allocated pill is displayed
+        onNodeWithText("Over allocated by $200.00").assertIsDisplayed()
+
+        // Attempt to save
+        onNodeWithTag("save_budget_button").performClick()
+        waitForIdle()
+
+        assertFalse(saved)
+        runTest {
+            assertNull(budgetRepo.getMonthlyBudget(targetMonth).first())
+        }
+    }
+
+    @Test
+    fun categoryAllocations_resetButton_clearsInputsAndRestoresRemaining() = runComposeUiTest {
+        val budgetRepo = FakeBudgetRepository()
+        val categoryRepo = FakeCategoryBudgetRepository()
+        val targetMonth = YearMonth(2026, 8)
+
+        setContent {
+            val viewModel = SetBudgetViewModel(
+                setMonthlyBudgetUseCase = SetMonthlyBudgetUseCase(budgetRepo),
+                getMonthlyBudgetUseCase = GetMonthlyBudgetUseCase(budgetRepo),
+                deleteMonthlyBudgetUseCase = DeleteMonthlyBudgetUseCase(budgetRepo),
+                getCategoryBudgetsUseCase = GetCategoryBudgetsUseCase(categoryRepo),
+                saveCategoryAllocationsUseCase = SaveCategoryAllocationsUseCase(budgetRepo, categoryRepo),
+                removeCategoryBudgetUseCase = RemoveCategoryBudgetUseCase(categoryRepo),
+                yearMonth = targetMonth
+            )
+            SetBudgetScreen(
+                viewModel = viewModel,
+                onSaveSuccess = {},
+                onDismiss = {}
+            )
+        }
+
+        waitForIdle()
+
+        onNodeWithTag("budget_amount_input").performTextInput("2000.00")
+        onNodeWithTag("category_allocation_input_groceries").performTextInput("500.00")
+        waitForIdle()
+
+        onNodeWithText("Remaining to Allocate: $1500.00").assertIsDisplayed()
+
+        // Click Reset
+        onNodeWithTag("reset_allocations_button").performClick()
+        waitForIdle()
+
+        onNodeWithText("Remaining to Allocate: $2000.00").assertIsDisplayed()
     }
 }

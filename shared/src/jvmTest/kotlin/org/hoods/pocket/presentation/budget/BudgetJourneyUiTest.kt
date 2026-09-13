@@ -13,6 +13,7 @@ import org.hoods.pocket.PocketBudgetRoot
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.domain.usecase.FakeBudgetRepository
+import org.hoods.pocket.domain.usecase.FakeCategoryBudgetRepository
 import org.hoods.pocket.domain.usecase.FakeTransactionRepository
 import kotlin.test.Test
 
@@ -182,5 +183,92 @@ class BudgetJourneyUiTest {
         // 13. Returned to Budget Dashboard: empty state is restored
         onNodeWithText("No budget set for ${currentMonth.format()}", substring = true).assertIsDisplayed()
         onNodeWithTag("set_monthly_budget_button").assertIsDisplayed()
+    }
+
+    @Test
+    fun completeCategoryBudgetJourney_setAllocationsAndVerifyPersistenceAndReset() = runComposeUiTest {
+        val transactionRepository = FakeTransactionRepository()
+        val budgetRepository = FakeBudgetRepository()
+        val categoryBudgetRepository = FakeCategoryBudgetRepository()
+        val currentMonth = YearMonth.now()
+
+        setContent {
+            PocketBudgetRoot(
+                repository = transactionRepository,
+                budgetRepository = budgetRepository,
+                categoryBudgetRepository = categoryBudgetRepository
+            )
+        }
+
+        waitForIdle()
+
+        // 1. Navigate to Budgets tab (empty state)
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+
+        // 2. Click Set Monthly Budget
+        onNodeWithTag("set_monthly_budget_button").performClick()
+        waitForIdle()
+
+        // 3. Enter Monthly Budget of $2,000.00
+        onNodeWithTag("budget_amount_input").performTextInput("2000.00")
+        waitForIdle()
+
+        // Verify remaining to allocate initially shows $2000.00
+        onNodeWithTag("remaining_allocation_text").assertTextEquals("Remaining to Allocate: $2000.00")
+
+        // 4. Enter valid category allocations: Groceries $500.00, Dining Out $300.00, Transport $200.00
+        onNodeWithTag("category_allocation_input_groceries").performTextInput("500.00")
+        onNodeWithTag("category_allocation_input_dining").performTextInput("300.00")
+        onNodeWithTag("category_allocation_input_transport").performTextInput("200.00")
+        waitForIdle()
+
+        // Remaining to allocate should be $1000.00
+        onNodeWithTag("remaining_allocation_text").assertTextEquals("Remaining to Allocate: $1000.00")
+
+        // 5. Over-allocation check: enter Shopping $1200.00 ($2000 - $500 - $300 - $200 - $1200 = -$200.00)
+        onNodeWithTag("category_allocation_input_shopping").performTextInput("1200.00")
+        waitForIdle()
+
+        onNodeWithTag("remaining_allocation_text").assertTextEquals("Over allocated by $200.00")
+        onNodeWithTag("save_budget_button").performClick()
+        waitForIdle()
+        onNodeWithTag("error_message_text").assertIsDisplayed()
+
+        // 6. Correct Shopping to $200.00
+        onNodeWithTag("category_allocation_input_shopping").performTextClearance()
+        onNodeWithTag("category_allocation_input_shopping").performTextInput("200.00")
+        waitForIdle()
+
+        onNodeWithTag("remaining_allocation_text").assertTextEquals("Remaining to Allocate: $800.00")
+
+        // 7. Save the budget with category allocations
+        onNodeWithTag("save_budget_button").performClick()
+        waitForIdle()
+
+        // 8. We are back on dashboard: click edit to reopen SetBudget
+        onNodeWithTag("edit_budget_button").performClick()
+        waitForIdle()
+
+        // 9. Verify prefilled allocations persisted
+        onNodeWithTag("category_allocation_input_groceries").assertTextEquals("$ ", "500.00")
+        onNodeWithTag("category_allocation_input_dining").assertTextEquals("$ ", "300.00")
+        onNodeWithTag("category_allocation_input_transport").assertTextEquals("$ ", "200.00")
+        onNodeWithTag("category_allocation_input_shopping").assertTextEquals("$ ", "200.00")
+        onNodeWithTag("remaining_allocation_text").assertTextEquals("Remaining to Allocate: $800.00")
+
+        // 10. Click Reset Allocations button
+        onNodeWithTag("reset_allocations_button").performClick()
+        waitForIdle()
+
+        // All category allocation inputs should be cleared and remaining back to full total
+        onNodeWithTag("remaining_allocation_text").assertTextEquals("Remaining to Allocate: $2000.00")
+
+        // 11. Save the reset budget
+        onNodeWithTag("save_budget_button").performClick()
+        waitForIdle()
+
+        // Back to dashboard
+        onNodeWithText("Total Budget Used").assertIsDisplayed()
     }
 }

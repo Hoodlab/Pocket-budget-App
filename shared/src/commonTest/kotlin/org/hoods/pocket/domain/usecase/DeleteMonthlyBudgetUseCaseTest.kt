@@ -41,4 +41,23 @@ class DeleteMonthlyBudgetUseCaseTest {
         assertTrue(result.isFailure)
         assertEquals("Disk full", result.exceptionOrNull()?.message)
     }
+
+    @Test
+    fun deletesExistingBudget_alsoCleansUpCategoryBudgetsForMonth() = runTest {
+        val repository = FakeBudgetRepository()
+        val categoryRepository = FakeCategoryBudgetRepository()
+        val useCase = DeleteMonthlyBudgetUseCase(repository, categoryRepository)
+        val targetMonth = YearMonth(2026, 9)
+
+        repository.setMonthlyBudget(MonthlyBudget(targetMonth, 250000L))
+        categoryRepository.setCategoryBudget(
+            org.hoods.pocket.domain.model.CategoryBudget(targetMonth, org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, 50000L)
+        )
+
+        val result = useCase(targetMonth)
+
+        assertTrue(result.isSuccess)
+        assertNull(repository.getMonthlyBudget(targetMonth).first())
+        assertTrue(categoryRepository.getCategoryBudgets(targetMonth).first().isEmpty())
+    }
 }

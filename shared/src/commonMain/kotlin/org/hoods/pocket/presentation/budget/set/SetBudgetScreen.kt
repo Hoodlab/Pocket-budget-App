@@ -28,6 +28,9 @@ fun SetBudgetScreen(
     SetBudgetContent(
         uiState = uiState,
         onAmountChanged = viewModel::onAmountChanged,
+        onCategoryAllocationChanged = viewModel::onCategoryAllocationChanged,
+        onRemoveCategoryAllocation = viewModel::onRemoveCategoryAllocation,
+        onResetAllocations = viewModel::onResetAllocations,
         onSaveClick = viewModel::saveBudget,
         onRequestDelete = viewModel::requestDelete,
         onDismissDelete = viewModel::dismissDelete,

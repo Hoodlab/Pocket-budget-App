@@ -21,6 +21,7 @@ object PocketColors {
     val Surface = Color(0xFFEEFDF2)
     val OnSurface = Color(0xFF121E18)
     val SurfaceContainerLowest = Color(0xFFFFFFFF)
+    val SurfaceContainerLow = Color(0xFFE8F7EC)
     val SurfaceContainer = Color(0xFFE3F2E7)
     val SurfaceContainerHigh = Color(0xFFDDECE1)
     val OnSurfaceVariant = Color(0xFF3F4943)
@@ -28,6 +29,8 @@ object PocketColors {
     val OutlineVariant = Color(0xFFBEC9C0)
     val Error = Color(0xFFBA1A1A)
     val OnError = Color(0xFFFFFFFF)
+    val ErrorContainer = Color(0xFFFFDAD6)
+    val OnErrorContainer = Color(0xFF93000A)
 
     // Semantic tokens
     val Income = Color(0xFF059669)

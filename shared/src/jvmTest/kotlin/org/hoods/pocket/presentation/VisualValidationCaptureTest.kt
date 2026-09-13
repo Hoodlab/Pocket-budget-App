@@ -81,6 +81,24 @@ class VisualValidationCaptureTest {
         )
     )
 
+    private val sampleCategoryAllocations = mapOf(
+        TransactionCategory.GROCERIES to "600.00",
+        TransactionCategory.DINING to "400.00",
+        TransactionCategory.TRANSPORT to "250.00",
+        TransactionCategory.SHOPPING to "350.00",
+        TransactionCategory.BILLS to "500.00",
+        TransactionCategory.ENTERTAINMENT to "100.00"
+    )
+
+    private val sampleOverAllocations = mapOf(
+        TransactionCategory.GROCERIES to "1200.00",
+        TransactionCategory.DINING to "800.00",
+        TransactionCategory.TRANSPORT to "500.00",
+        TransactionCategory.SHOPPING to "600.00",
+        TransactionCategory.BILLS to "500.00",
+        TransactionCategory.ENTERTAINMENT to "200.00"
+    )
+
     // ==========================================
     // Mobile Viewport (390 x 844 dp)
     // ==========================================
@@ -535,7 +553,8 @@ class VisualValidationCaptureTest {
                     SetBudgetContent(
                         uiState = SetBudgetUiState(
                             yearMonth = targetMonth,
-                            amountText = "3000.00"
+                            amountText = "3000.00",
+                            categoryAllocations = sampleCategoryAllocations
                         ),
                         onAmountChanged = {},
                         onSaveClick = {},
@@ -546,6 +565,34 @@ class VisualValidationCaptureTest {
         }
         waitForIdle()
         saveScreenshot("mobile-set-budget", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureMobile_setBudget_overallocated() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 390.dp, height = 844.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    SetBudgetContent(
+                        uiState = SetBudgetUiState(
+                            yearMonth = targetMonth,
+                            amountText = "3000.00",
+                            categoryAllocations = sampleOverAllocations,
+                            errorMessage = "Total category allocations exceed monthly budget by $800.00"
+                        ),
+                        onAmountChanged = {},
+                        onSaveClick = {},
+                        onDismiss = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("mobile-set-budget-overallocated", onRoot().captureToImage())
     }
 
     // ==========================================
@@ -629,7 +676,8 @@ class VisualValidationCaptureTest {
                     SetBudgetContent(
                         uiState = SetBudgetUiState(
                             yearMonth = targetMonth,
-                            amountText = "3000.00"
+                            amountText = "3000.00",
+                            categoryAllocations = sampleCategoryAllocations
                         ),
                         onAmountChanged = {},
                         onSaveClick = {},
@@ -640,6 +688,34 @@ class VisualValidationCaptureTest {
         }
         waitForIdle()
         saveScreenshot("desktop-set-budget", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureDesktop_setBudget_overallocated() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 1024.dp, height = 768.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    SetBudgetContent(
+                        uiState = SetBudgetUiState(
+                            yearMonth = targetMonth,
+                            amountText = "3000.00",
+                            categoryAllocations = sampleOverAllocations,
+                            errorMessage = "Total category allocations exceed monthly budget by $800.00"
+                        ),
+                        onAmountChanged = {},
+                        onSaveClick = {},
+                        onDismiss = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("desktop-set-budget-overallocated", onRoot().captureToImage())
     }
 
     @Test
@@ -656,6 +732,7 @@ class VisualValidationCaptureTest {
                         uiState = SetBudgetUiState(
                             yearMonth = targetMonth,
                             amountText = "3000.00",
+                            categoryAllocations = sampleCategoryAllocations,
                             isExistingBudget = true
                         ),
                         onAmountChanged = {},
@@ -718,6 +795,7 @@ class VisualValidationCaptureTest {
                         uiState = SetBudgetUiState(
                             yearMonth = targetMonth,
                             amountText = "3000.00",
+                            categoryAllocations = sampleCategoryAllocations,
                             isExistingBudget = true
                         ),
                         onAmountChanged = {},

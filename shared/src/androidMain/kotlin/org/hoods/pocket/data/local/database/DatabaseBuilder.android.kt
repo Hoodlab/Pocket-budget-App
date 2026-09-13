@@ -4,8 +4,10 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import org.hoods.pocket.data.repository.RoomBudgetRepository
+import org.hoods.pocket.data.repository.RoomCategoryBudgetRepository
 import org.hoods.pocket.data.repository.RoomTransactionRepository
 import org.hoods.pocket.domain.repository.BudgetRepository
+import org.hoods.pocket.domain.repository.CategoryBudgetRepository
 import org.hoods.pocket.domain.repository.TransactionRepository
 
 fun getDatabaseBuilder(context: Context): RoomDatabase.Builder<AppDatabase> {
@@ -31,4 +33,8 @@ fun createTransactionRepository(context: Context): TransactionRepository {
 
 fun createBudgetRepository(context: Context): BudgetRepository {
     return RoomBudgetRepository(getSharedAppDatabase(context).budgetDao())
+}
+
+fun createCategoryBudgetRepository(context: Context): CategoryBudgetRepository {
+    return RoomCategoryBudgetRepository(getSharedAppDatabase(context).categoryBudgetDao())
 }

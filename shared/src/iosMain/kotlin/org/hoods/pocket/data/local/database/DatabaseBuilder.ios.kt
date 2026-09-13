@@ -3,8 +3,10 @@ package org.hoods.pocket.data.local.database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import org.hoods.pocket.data.repository.RoomBudgetRepository
+import org.hoods.pocket.data.repository.RoomCategoryBudgetRepository
 import org.hoods.pocket.data.repository.RoomTransactionRepository
 import org.hoods.pocket.domain.repository.BudgetRepository
+import org.hoods.pocket.domain.repository.CategoryBudgetRepository
 import org.hoods.pocket.domain.repository.TransactionRepository
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
@@ -38,4 +40,8 @@ fun createTransactionRepository(): TransactionRepository {
 
 fun createBudgetRepository(): BudgetRepository {
     return RoomBudgetRepository(getSharedAppDatabase().budgetDao())
+}
+
+fun createCategoryBudgetRepository(): CategoryBudgetRepository {
+    return RoomCategoryBudgetRepository(getSharedAppDatabase().categoryBudgetDao())
 }
