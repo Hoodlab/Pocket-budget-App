@@ -25,6 +25,7 @@ import org.hoods.pocket.presentation.transaction.edit.EditTransactionUiState
 import org.hoods.pocket.presentation.transaction.list.TransactionListContent
 import org.hoods.pocket.presentation.transaction.list.TransactionListUiState
 import org.hoods.pocket.domain.model.BudgetHealthStatus
+import org.hoods.pocket.domain.model.CashFlowSummary
 import org.hoods.pocket.domain.model.CategoryBudgetSummary
 import org.hoods.pocket.domain.model.MonthlyBudget
 import org.hoods.pocket.domain.model.MonthlyBudgetSummary
@@ -141,6 +142,7 @@ class VisualValidationCaptureTest {
 
     @Test
     fun captureMobile_transactionList_emptyState() = runComposeUiTest {
+        val month = YearMonth(2026, 9)
         setContent {
             PocketTheme {
                 Box(
@@ -150,9 +152,12 @@ class VisualValidationCaptureTest {
                 ) {
                     TransactionListContent(
                         uiState = TransactionListUiState(
-                            selectedMonth = YearMonth(2026, 9),
+                            selectedMonth = month,
                             isCurrentMonth = true,
-                            transactions = emptyList()
+                            transactions = emptyList(),
+                            cashFlow = CashFlowSummary(month, income = 0L, expense = 0L),
+                            budgetSummary = null,
+                            categorySummaries = emptyList()
                         ),
                         onAddTransactionClick = {},
                         onTransactionClick = {},
@@ -183,7 +188,17 @@ class VisualValidationCaptureTest {
                         uiState = TransactionListUiState(
                             selectedMonth = month,
                             isCurrentMonth = true,
-                            transactions = sampleTransactions
+                            transactions = sampleTransactions,
+                            cashFlow = CashFlowSummary(month, income = 500000L, expense = 258000L),
+                            budgetSummary = MonthlyBudgetSummary(
+                                yearMonth = month,
+                                budget = MonthlyBudget(month, 300000L),
+                                totalExpense = 258000L,
+                                remainingAmount = 42000L,
+                                progress = 0.86f,
+                                status = BudgetHealthStatus.NEAR_LIMIT
+                            ),
+                            categorySummaries = sampleCategoryBudgetSummaries
                         ),
                         onAddTransactionClick = {},
                         onTransactionClick = {},
@@ -373,6 +388,7 @@ class VisualValidationCaptureTest {
 
     @Test
     fun captureDesktop_transactionList_emptyState() = runComposeUiTest {
+        val month = YearMonth(2026, 9)
         setContent {
             PocketTheme {
                 Box(
@@ -382,9 +398,12 @@ class VisualValidationCaptureTest {
                 ) {
                     TransactionListContent(
                         uiState = TransactionListUiState(
-                            selectedMonth = YearMonth(2026, 9),
+                            selectedMonth = month,
                             isCurrentMonth = true,
-                            transactions = emptyList()
+                            transactions = emptyList(),
+                            cashFlow = CashFlowSummary(month, income = 0L, expense = 0L),
+                            budgetSummary = null,
+                            categorySummaries = emptyList()
                         ),
                         onAddTransactionClick = {},
                         onTransactionClick = {},
@@ -413,7 +432,17 @@ class VisualValidationCaptureTest {
                         uiState = TransactionListUiState(
                             selectedMonth = month,
                             isCurrentMonth = true,
-                            transactions = sampleTransactions
+                            transactions = sampleTransactions,
+                            cashFlow = CashFlowSummary(month, income = 500000L, expense = 258000L),
+                            budgetSummary = MonthlyBudgetSummary(
+                                yearMonth = month,
+                                budget = MonthlyBudget(month, 300000L),
+                                totalExpense = 258000L,
+                                remainingAmount = 42000L,
+                                progress = 0.86f,
+                                status = BudgetHealthStatus.NEAR_LIMIT
+                            ),
+                            categorySummaries = sampleCategoryBudgetSummaries
                         ),
                         onAddTransactionClick = {},
                         onTransactionClick = {},

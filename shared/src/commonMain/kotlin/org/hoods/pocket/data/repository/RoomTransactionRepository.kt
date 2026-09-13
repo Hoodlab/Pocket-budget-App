@@ -48,6 +48,10 @@ class RoomTransactionRepository(
         return dao.getExpenseTotalByDateRange(startEpochMillis, endEpochMillis)
     }
 
+    override fun getIncomeTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Long> {
+        return dao.getIncomeTotalByDateRange(startEpochMillis, endEpochMillis)
+    }
+
     override fun getCategorySpendingByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Map<TransactionCategory, Long>> {
         return dao.getCategorySpendingByDateRange(startEpochMillis, endEpochMillis).map { list ->
             list.associate { entity ->

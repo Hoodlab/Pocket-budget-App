@@ -2,6 +2,7 @@ package org.hoods.pocket.presentation.transaction
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -52,9 +53,17 @@ class TransactionJourneyUiTest {
         onNodeWithTag("save_transaction_button").performClick()
         waitForIdle()
 
+        var txId = ""
+        runTest {
+            val list = repository.getTransactions().first()
+            assertEquals(1, list.size)
+            assertEquals(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, list.first().category)
+            txId = list.first().id
+        }
+
         // 4. Return to List: Verify added transaction and category appear in current month
         onNodeWithText("Whole Foods").assertIsDisplayed()
-        onNodeWithText("-$45.50").assertIsDisplayed()
+        onNodeWithTag("transaction_item_$txId").assertTextContains("-$45.50")
         onNodeWithText("Groceries", substring = true).assertIsDisplayed()
 
         // 5. Month Browsing: Navigate to previous month, verify filtering, and return to current
@@ -68,14 +77,6 @@ class TransactionJourneyUiTest {
         waitForIdle()
         onNodeWithText(currentMonth.format()).assertIsDisplayed()
         onNodeWithText("Whole Foods").assertIsDisplayed()
-
-        var txId = ""
-        runTest {
-            val list = repository.getTransactions().first()
-            assertEquals(1, list.size)
-            assertEquals(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, list.first().category)
-            txId = list.first().id
-        }
 
         // 6. Navigate to Edit: Tap the transaction item
         onNodeWithTag("transaction_item_$txId").performClick()
@@ -98,7 +99,7 @@ class TransactionJourneyUiTest {
 
         // 8. Return to List: Verify updated description, amount, and category, without duplicate records
         onNodeWithText("Weekly Dining").assertIsDisplayed()
-        onNodeWithText("-$52.00").assertIsDisplayed()
+        onNodeWithTag("transaction_item_$txId").assertTextContains("-$52.00")
         onNodeWithText("Dining", substring = true).assertIsDisplayed()
         runTest {
             val list = repository.getTransactions().first()

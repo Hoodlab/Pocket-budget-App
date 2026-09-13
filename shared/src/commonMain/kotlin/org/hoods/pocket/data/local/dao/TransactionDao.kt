@@ -24,6 +24,9 @@ interface TransactionDao {
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'EXPENSE' AND dateEpochMillis >= :startEpochMillis AND dateEpochMillis < :endEpochMillis")
     fun getExpenseTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Long>
 
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'INCOME' AND dateEpochMillis >= :startEpochMillis AND dateEpochMillis < :endEpochMillis")
+    fun getIncomeTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Long>
+
     @Query("SELECT category, COALESCE(SUM(amount), 0) AS totalSpent FROM transactions WHERE type = 'EXPENSE' AND dateEpochMillis >= :startEpochMillis AND dateEpochMillis < :endEpochMillis GROUP BY category")
     fun getCategorySpendingByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<List<CategorySpendingEntity>>
 

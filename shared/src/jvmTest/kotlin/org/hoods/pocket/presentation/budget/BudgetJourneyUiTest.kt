@@ -60,7 +60,7 @@ class BudgetJourneyUiTest {
 
         // 6. Returned to Budget Dashboard: shows $0.00 / $2,000.00
         onNodeWithText("Total Budget Used").assertIsDisplayed()
-        onNodeWithText("$0.00", substring = true).assertIsDisplayed()
+        onNodeWithTag("total_budget_spent_amount").assertTextContains("$0.00")
         onNodeWithText("/ $2000.00", substring = true).assertIsDisplayed()
         onNodeWithText("$2000.00 left").assertIsDisplayed()
 
@@ -90,7 +90,7 @@ class BudgetJourneyUiTest {
         waitForIdle()
 
         // 11. Verify dashboard shows spent $150.00 (income ignored!) and $1,850.00 left
-        onNodeWithText("$150.00", substring = true).assertIsDisplayed()
+        onNodeWithTag("total_budget_spent_amount").assertTextContains("$150.00")
         onNodeWithText("/ $2000.00", substring = true).assertIsDisplayed()
         onNodeWithText("$1850.00 left").assertIsDisplayed()
 
@@ -103,7 +103,7 @@ class BudgetJourneyUiTest {
         // 13. Return to current month via Today button
         onNodeWithTag("current_month_button").performClick()
         waitForIdle()
-        onNodeWithText("$150.00", substring = true).assertIsDisplayed()
+        onNodeWithTag("total_budget_spent_amount").assertTextContains("$150.00")
         onNodeWithText("$1850.00 left").assertIsDisplayed()
     }
 
@@ -362,7 +362,7 @@ class BudgetJourneyUiTest {
         onNodeWithTag("nav_budgets").performClick()
         waitForIdle()
         // Overall spent is $370.00 ($320 + $50)
-        onNodeWithText("370.00", substring = true).assertIsDisplayed()
+        onNodeWithTag("total_budget_spent_amount").assertTextContains("$370.00")
         // Groceries spent is still $320.00 ($80.00 left)
         onNodeWithTag("category_remaining_GROCERIES").assertTextContains("80.00", substring = true)
 
@@ -403,5 +403,137 @@ class BudgetJourneyUiTest {
         onNodeWithTag("previous_month_button").performClick()
         waitForIdle()
         onNodeWithText("No budget set for ${prevMonth.format()}", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun financialDashboardJourney_incomeExpenseNetBalance_budgetHealth_categoryHealth_reactivity() = runComposeUiTest {
+        val transactionRepository = FakeTransactionRepository()
+        val budgetRepository = FakeBudgetRepository()
+        val categoryBudgetRepository = FakeCategoryBudgetRepository()
+        val currentMonth = YearMonth.now()
+        val prevMonth = currentMonth.previous()
+
+        setContent {
+            PocketBudgetRoot(
+                repository = transactionRepository,
+                budgetRepository = budgetRepository,
+                categoryBudgetRepository = categoryBudgetRepository
+            )
+        }
+
+        waitForIdle()
+
+        // 1. App starts on Transactions tab: Cash flow is $0.00, and read-only budget health shows no budget set
+        onNodeWithTag("cash_flow_overview").assertIsDisplayed()
+        onNodeWithTag("net_balance_amount").assertTextContains("$0.00")
+        onNodeWithTag("income_amount").assertTextContains("+$0.00")
+        onNodeWithTag("spent_amount").assertTextContains("-$0.00")
+        onNodeWithTag("budget_health_overview").assertIsDisplayed()
+        onNodeWithText("No budget set for ${currentMonth.format()}", substring = true).assertIsDisplayed()
+
+        // 2. Navigate to Budgets tab to manage monthly budget and category allocations
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+        // Budget tab does NOT contain cash flow overview
+        onNodeWithTag("cash_flow_overview").assertDoesNotExist()
+        onNodeWithText("No budget set for ${currentMonth.format()}", substring = true).assertIsDisplayed()
+
+        // 3. Click Set Monthly Budget: Set $1,000.00 budget with Groceries $400.00
+        onNodeWithTag("set_monthly_budget_button").performClick()
+        waitForIdle()
+        onNodeWithTag("budget_amount_input").performTextInput("1000.00")
+        onNodeWithTag("category_allocation_input_groceries").performTextInput("400.00")
+        onNodeWithTag("save_budget_button").performClick()
+        waitForIdle()
+
+        // 4. Returned to Budget dashboard: budget health is $0 / $1,000, Groceries category allocation shown
+        onNodeWithText("Total Budget Used").assertIsDisplayed()
+        onNodeWithText("$1000.00 left").assertIsDisplayed()
+        onNodeWithTag("category_budget_card_GROCERIES").assertIsDisplayed()
+
+        // 5. Navigate to Transactions tab: read-only budget health reflects the new budget
+        onNodeWithTag("nav_transactions").performClick()
+        waitForIdle()
+        onNodeWithTag("budget_health_overview").assertIsDisplayed()
+        onNodeWithTag("total_budget_spent_amount").assertTextContains("$0.00 / $1000.00")
+        onNodeWithTag("category_budget_card_GROCERIES").assertIsDisplayed()
+
+        // 6. Add Income $2,500.00
+        onNodeWithTag("add_transaction_fab").performClick()
+        waitForIdle()
+        onNodeWithTag("type_toggle_income").performClick()
+        onNodeWithTag("description_input").performTextInput("Salary")
+        onNodeWithTag("amount_input").performTextInput("2500.00")
+        onNodeWithTag("category_chip_salary").performClick()
+        onNodeWithTag("save_transaction_button").performClick()
+        waitForIdle()
+
+        // 7. Add Expense: Groceries $300.00
+        onNodeWithTag("add_transaction_fab").performClick()
+        waitForIdle()
+        onNodeWithTag("description_input").performTextInput("Supermarket")
+        onNodeWithTag("amount_input").performTextInput("300.00")
+        onNodeWithTag("category_chip_groceries").performClick()
+        onNodeWithTag("save_transaction_button").performClick()
+        waitForIdle()
+
+        // 8. On Transactions tab: verify cash flow and read-only budget health
+        // Cash flow: Income $2,500.00, Spent $300.00, Net Balance $2,200.00
+        onNodeWithTag("cash_flow_overview").assertIsDisplayed()
+        onNodeWithTag("income_amount").assertTextContains("+$2500.00")
+        onNodeWithTag("spent_amount").assertTextContains("-$300.00")
+        onNodeWithTag("net_balance_amount").assertTextContains("$2200.00")
+
+        // Read-only budget health on Transactions tab: spent $300.00 / $1000.00
+        onNodeWithTag("total_budget_spent_amount").assertTextContains("$300.00 / $1000.00")
+
+        // 9. Navigate to Budgets tab: verify same domain summary is reflected in budget management view
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+        onNodeWithTag("total_budget_spent_amount").assertTextContains("$300.00")
+        onNodeWithText("/ $1000.00", substring = true).assertIsDisplayed()
+        onNodeWithText("$700.00 left").assertIsDisplayed()
+        onNodeWithTag("category_remaining_GROCERIES").assertTextContains("100.00", substring = true)
+
+        // 10. Add large Expense $2,300.00 causing Net Balance to become negative (-$100.00) and Total Budget over
+        onNodeWithTag("nav_transactions").performClick()
+        waitForIdle()
+        onNodeWithTag("add_transaction_fab").performClick()
+        waitForIdle()
+        onNodeWithTag("description_input").performTextInput("Major Repair")
+        onNodeWithTag("amount_input").performTextInput("2300.00")
+        onNodeWithTag("category_chip_entertainment").performClick()
+        onNodeWithTag("save_transaction_button").performClick()
+        waitForIdle()
+
+        // Cash flow on Transactions tab: Income $2,500.00, Spent $2,600.00, Net Balance -$100.00
+        onNodeWithTag("income_amount").assertTextContains("+$2500.00")
+        onNodeWithTag("spent_amount").assertTextContains("-$2600.00")
+        onNodeWithTag("net_balance_amount").assertTextContains("-$100.00")
+        onNodeWithTag("total_budget_spent_amount").assertTextContains("$2600.00 / $1000.00")
+        onNodeWithText("Over Budget").assertIsDisplayed()
+
+        // 11. Navigate to Budgets tab: verify over budget status matches
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+        onNodeWithText("-$1600.00 over budget", substring = true).assertIsDisplayed()
+
+        // 12. Month isolation: Budgets tab month navigation does not mutate Transactions tab month
+        onNodeWithTag("previous_month_button").performClick()
+        waitForIdle()
+        onNodeWithText("No budget set for ${prevMonth.format()}", substring = true).assertIsDisplayed()
+
+        onNodeWithTag("nav_transactions").performClick()
+        waitForIdle()
+        // Transactions tab remains on currentMonth with its cash flow overview intact
+        onNodeWithTag("income_amount").assertTextContains("+$2500.00")
+        onNodeWithTag("net_balance_amount").assertTextContains("-$100.00")
+
+        // Changing month on Transactions tab navigates its overview independently
+        onNodeWithTag("previous_month_button").performClick()
+        waitForIdle()
+        onNodeWithTag("net_balance_amount").assertTextContains("$0.00")
+        onNodeWithTag("income_amount").assertTextContains("+$0.00")
+        onNodeWithTag("spent_amount").assertTextContains("-$0.00")
     }
 }

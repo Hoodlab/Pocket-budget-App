@@ -45,6 +45,7 @@ import org.hoods.pocket.domain.model.CategoryBudgetSummary
 import org.hoods.pocket.domain.util.MoneyParser
 import org.hoods.pocket.presentation.theme.PocketColors
 import org.hoods.pocket.presentation.transaction.icon
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.tooling.preview.Preview
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -317,7 +318,8 @@ fun BudgetDashboardContent(
                                         text = "$$spentFormatted",
                                         fontSize = 36.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = PocketColors.OnSurface
+                                        color = PocketColors.OnSurface,
+                                        modifier = Modifier.testTag("total_budget_spent_amount")
                                     )
                                     Text(
                                         text = " / $$limitFormatted",
@@ -616,7 +618,8 @@ fun BudgetDashboardContent(
                                     text = "$$spentFormatted",
                                     fontSize = 32.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = PocketColors.OnSurface
+                                    color = PocketColors.OnSurface,
+                                    modifier = Modifier.testTag("total_budget_spent_amount")
                                 )
                                 Text(
                                     text = " / $$limitFormatted",

@@ -14,8 +14,17 @@ import kotlinx.coroutines.flow.update
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.domain.usecase.GetTransactionsByMonthUseCase
 
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import org.hoods.pocket.domain.usecase.GetCashFlowSummaryUseCase
+import org.hoods.pocket.domain.usecase.GetCategoryBudgetSummariesUseCase
+import org.hoods.pocket.domain.usecase.GetMonthlyBudgetSummaryUseCase
+
 class TransactionListViewModel(
     getTransactionsByMonthUseCase: GetTransactionsByMonthUseCase,
+    getCashFlowSummaryUseCase: GetCashFlowSummaryUseCase? = null,
+    getMonthlyBudgetSummaryUseCase: GetMonthlyBudgetSummaryUseCase? = null,
+    getCategoryBudgetSummariesUseCase: GetCategoryBudgetSummariesUseCase? = null,
     initialMonth: YearMonth? = null,
     coroutineScope: CoroutineScope? = null
 ) : ViewModel() {
@@ -26,12 +35,20 @@ class TransactionListViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<TransactionListUiState> = _selectedMonth.flatMapLatest { selectedMonth ->
-        getTransactionsByMonthUseCase(selectedMonth).map { transactions ->
+        val txFlow = getTransactionsByMonthUseCase(selectedMonth)
+        val cashFlowFlow = getCashFlowSummaryUseCase?.invoke(selectedMonth) ?: flowOf(null)
+        val budgetFlow = getMonthlyBudgetSummaryUseCase?.invoke(selectedMonth) ?: flowOf(null)
+        val categoryFlow = getCategoryBudgetSummariesUseCase?.invoke(selectedMonth) ?: flowOf(emptyList())
+
+        combine(txFlow, cashFlowFlow, budgetFlow, categoryFlow) { transactions, cashFlow, budgetSummary, categorySummaries ->
             val currentMonth = YearMonth.now()
             TransactionListUiState(
-                 selectedMonth = selectedMonth,
+                selectedMonth = selectedMonth,
                 isCurrentMonth = selectedMonth == currentMonth,
                 transactions = transactions,
+                cashFlow = cashFlow,
+                budgetSummary = budgetSummary,
+                categorySummaries = categorySummaries,
                 isLoading = false
             )
         }

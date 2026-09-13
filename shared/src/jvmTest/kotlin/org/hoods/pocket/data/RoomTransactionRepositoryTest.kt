@@ -389,4 +389,49 @@ class RoomTransactionRepositoryTest {
         val spending = repository.getCategorySpendingByDateRange(startMillis, endMillis).first()
         assertEquals(emptyMap(), spending)
     }
+
+    @Test
+    fun getIncomeTotalByDateRange_groupsIncomeWithinRange_ignoringExpenseAndOutOfRange() = runTest {
+        val startMillis = Instant.parse("2026-08-01T00:00:00Z").toEpochMilliseconds()
+        val endMillis = Instant.parse("2026-09-01T00:00:00Z").toEpochMilliseconds()
+
+        val txBeforeIncome = Transaction(
+            "1", "July Bonus", 100000L, TransactionType.INCOME,
+            Instant.parse("2026-07-31T23:59:59Z"), org.hoods.pocket.domain.model.TransactionCategory.SALARY
+        )
+        val txInIncome1 = Transaction(
+            "2", "Aug Salary", 450000L, TransactionType.INCOME,
+            Instant.parse("2026-08-01T12:00:00Z"), org.hoods.pocket.domain.model.TransactionCategory.SALARY
+        )
+        val txInIncome2 = Transaction(
+            "3", "Aug Freelance", 50000L, TransactionType.INCOME,
+            Instant.parse("2026-08-15T12:00:00Z"), org.hoods.pocket.domain.model.TransactionCategory.FREELANCE
+        )
+        val txInExpense = Transaction(
+            "4", "Aug Groceries", 258000L, TransactionType.EXPENSE,
+            Instant.parse("2026-08-10T18:00:00Z"), org.hoods.pocket.domain.model.TransactionCategory.GROCERIES
+        )
+        val txAfterIncome = Transaction(
+            "5", "Sep Salary", 450000L, TransactionType.INCOME,
+            Instant.parse("2026-09-01T00:00:00Z"), org.hoods.pocket.domain.model.TransactionCategory.SALARY
+        )
+
+        repository.insertTransaction(txBeforeIncome)
+        repository.insertTransaction(txInIncome1)
+        repository.insertTransaction(txInIncome2)
+        repository.insertTransaction(txInExpense)
+        repository.insertTransaction(txAfterIncome)
+
+        val totalIncome = repository.getIncomeTotalByDateRange(startMillis, endMillis).first()
+        assertEquals(500000L, totalIncome)
+    }
+
+    @Test
+    fun getIncomeTotalByDateRange_emptyTransactions_returnsZero() = runTest {
+        val startMillis = Instant.parse("2026-08-01T00:00:00Z").toEpochMilliseconds()
+        val endMillis = Instant.parse("2026-09-01T00:00:00Z").toEpochMilliseconds()
+
+        val totalIncome = repository.getIncomeTotalByDateRange(startMillis, endMillis).first()
+        assertEquals(0L, totalIncome)
+    }
 }

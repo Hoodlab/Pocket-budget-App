@@ -31,6 +31,14 @@ class FakeTransactionRepository : TransactionRepository {
             }.sumOf { it.amount }
         }
 
+    override fun getIncomeTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Long> =
+        transactionsFlow.map { list ->
+            list.filter {
+                it.type == org.hoods.pocket.domain.model.TransactionType.INCOME &&
+                    it.date.toEpochMilliseconds() in startEpochMillis until endEpochMillis
+            }.sumOf { it.amount }
+        }
+
     override fun getCategorySpendingByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Map<org.hoods.pocket.domain.model.TransactionCategory, Long>> =
         transactionsFlow.map { list ->
             list.filter {
