@@ -135,4 +135,90 @@ class BudgetDashboardViewModelTest {
         assertEquals(YearMonth.now(), state.selectedMonth)
         assertTrue(state.isCurrentMonth)
     }
+
+    @Test
+    fun `uiState emits categorySummaries when category budgets exist`() = runTest {
+        val budgetRepository = FakeBudgetRepository()
+        val categoryBudgetRepository = org.hoods.pocket.domain.usecase.FakeCategoryBudgetRepository()
+        val transactionRepository = FakeTransactionRepository()
+        val targetMonth = YearMonth(2026, 8)
+
+        budgetRepository.setMonthlyBudget(MonthlyBudget(targetMonth, 300000L))
+        categoryBudgetRepository.setCategoryBudget(
+            org.hoods.pocket.domain.model.CategoryBudget(targetMonth, org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, 60000L)
+        )
+        transactionRepository.insertTransaction(
+            Transaction(
+                id = "1",
+                description = "Whole Foods",
+                amount = 45000L,
+                type = TransactionType.EXPENSE,
+                date = Instant.parse("2026-08-15T12:00:00Z"),
+                category = org.hoods.pocket.domain.model.TransactionCategory.GROCERIES
+            )
+        )
+
+        val monthlyUseCase = GetMonthlyBudgetSummaryUseCase(budgetRepository, transactionRepository)
+        val categoryUseCase = org.hoods.pocket.domain.usecase.GetCategoryBudgetSummariesUseCase(categoryBudgetRepository, transactionRepository)
+        val viewModel = BudgetDashboardViewModel(
+            getMonthlyBudgetSummaryUseCase = monthlyUseCase,
+            getCategoryBudgetSummariesUseCase = categoryUseCase,
+            initialMonth = targetMonth,
+            coroutineScope = backgroundScope
+        )
+
+        val state = viewModel.uiState.first { it.categorySummaries.isNotEmpty() }
+        assertTrue(state.hasCategoryBudgets)
+        assertEquals(1, state.categorySummaries.size)
+        val catSummary = state.categorySummaries.first()
+        assertEquals(org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, catSummary.category)
+        assertEquals(60000L, catSummary.limitAmount)
+        assertEquals(45000L, catSummary.spentAmount)
+        assertEquals(15000L, catSummary.remainingAmount)
+        assertEquals(0.75f, catSummary.progress)
+        assertEquals(BudgetHealthStatus.ON_TRACK, catSummary.status)
+    }
+
+    @Test
+    fun `adding expense updates categorySummaries reactively`() = runTest {
+        val budgetRepository = FakeBudgetRepository()
+        val categoryBudgetRepository = org.hoods.pocket.domain.usecase.FakeCategoryBudgetRepository()
+        val transactionRepository = FakeTransactionRepository()
+        val targetMonth = YearMonth(2026, 8)
+
+        budgetRepository.setMonthlyBudget(MonthlyBudget(targetMonth, 200000L))
+        categoryBudgetRepository.setCategoryBudget(
+            org.hoods.pocket.domain.model.CategoryBudget(targetMonth, org.hoods.pocket.domain.model.TransactionCategory.DINING, 50000L)
+        )
+
+        val monthlyUseCase = GetMonthlyBudgetSummaryUseCase(budgetRepository, transactionRepository)
+        val categoryUseCase = org.hoods.pocket.domain.usecase.GetCategoryBudgetSummariesUseCase(categoryBudgetRepository, transactionRepository)
+        val viewModel = BudgetDashboardViewModel(
+            getMonthlyBudgetSummaryUseCase = monthlyUseCase,
+            getCategoryBudgetSummariesUseCase = categoryUseCase,
+            initialMonth = targetMonth,
+            coroutineScope = backgroundScope
+        )
+
+        val initialState = viewModel.uiState.first { it.categorySummaries.isNotEmpty() }
+        assertEquals(0L, initialState.categorySummaries.first().spentAmount)
+        assertEquals(BudgetHealthStatus.ON_TRACK, initialState.categorySummaries.first().status)
+
+        // Insert expense reaching 80% (40000L) -> NEAR_LIMIT
+        transactionRepository.insertTransaction(
+            Transaction(
+                id = "2",
+                description = "Dinner",
+                amount = 40000L,
+                type = TransactionType.EXPENSE,
+                date = Instant.parse("2026-08-10T19:00:00Z"),
+                category = org.hoods.pocket.domain.model.TransactionCategory.DINING
+            )
+        )
+
+        val updatedState = viewModel.uiState.first { it.categorySummaries.first().spentAmount == 40000L }
+        assertEquals(40000L, updatedState.categorySummaries.first().spentAmount)
+        assertEquals(10000L, updatedState.categorySummaries.first().remainingAmount)
+        assertEquals(BudgetHealthStatus.NEAR_LIMIT, updatedState.categorySummaries.first().status)
+    }
 }

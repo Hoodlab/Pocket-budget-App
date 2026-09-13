@@ -10,16 +10,20 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import org.hoods.pocket.domain.model.YearMonth
+import org.hoods.pocket.domain.usecase.GetCategoryBudgetSummariesUseCase
 import org.hoods.pocket.domain.usecase.GetMonthlyBudgetSummaryUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BudgetDashboardViewModel(
     getMonthlyBudgetSummaryUseCase: GetMonthlyBudgetSummaryUseCase,
+    getCategoryBudgetSummariesUseCase: GetCategoryBudgetSummariesUseCase? = null,
     initialMonth: YearMonth = YearMonth.now(),
     coroutineScope: CoroutineScope? = null
 ) : ViewModel() {
@@ -29,12 +33,16 @@ class BudgetDashboardViewModel(
     private val _selectedMonth = MutableStateFlow(initialMonth)
 
     val uiState: StateFlow<BudgetDashboardUiState> = _selectedMonth.flatMapLatest { selectedMonth ->
-        getMonthlyBudgetSummaryUseCase(selectedMonth).map { summary ->
+        val monthlyFlow = getMonthlyBudgetSummaryUseCase(selectedMonth)
+        val categoryFlow = getCategoryBudgetSummariesUseCase?.invoke(selectedMonth) ?: flowOf(emptyList())
+
+        combine(monthlyFlow, categoryFlow) { summary, categorySummaries ->
             val currentMonth = YearMonth.now()
             BudgetDashboardUiState(
                 selectedMonth = summary.yearMonth,
                 isCurrentMonth = summary.yearMonth == currentMonth,
                 summary = summary,
+                categorySummaries = categorySummaries,
                 isLoading = false
             )
         }

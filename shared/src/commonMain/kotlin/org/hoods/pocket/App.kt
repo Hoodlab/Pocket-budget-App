@@ -15,6 +15,7 @@ import org.hoods.pocket.domain.repository.TransactionRepository
 import org.hoods.pocket.domain.usecase.AddTransactionUseCase
 import org.hoods.pocket.domain.usecase.DeleteMonthlyBudgetUseCase
 import org.hoods.pocket.domain.usecase.DeleteTransactionUseCase
+import org.hoods.pocket.domain.usecase.GetCategoryBudgetSummariesUseCase
 import org.hoods.pocket.domain.usecase.GetCategoryBudgetsUseCase
 import org.hoods.pocket.domain.usecase.GetMonthlyBudgetSummaryUseCase
 import org.hoods.pocket.domain.usecase.GetMonthlyBudgetUseCase
@@ -88,6 +89,9 @@ fun PocketBudgetRoot(
     val getMonthlyBudgetSummaryUseCase = remember(activeBudgetRepo, repository) {
         GetMonthlyBudgetSummaryUseCase(activeBudgetRepo, repository)
     }
+    val getCategoryBudgetSummariesUseCase = remember(activeCategoryBudgetRepo, repository) {
+        GetCategoryBudgetSummariesUseCase(activeCategoryBudgetRepo, repository)
+    }
 
     val listViewModel = remember(getTransactionsByMonthUseCase) {
         TransactionListViewModel(getTransactionsByMonthUseCase)
@@ -106,6 +110,7 @@ fun PocketBudgetRoot(
         budgetDashboardViewModelFactory = { month ->
             BudgetDashboardViewModel(
                 getMonthlyBudgetSummaryUseCase = getMonthlyBudgetSummaryUseCase,
+                getCategoryBudgetSummariesUseCase = getCategoryBudgetSummariesUseCase,
                 initialMonth = month
             )
         },

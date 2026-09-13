@@ -8,6 +8,11 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import org.hoods.pocket.data.local.entity.TransactionEntity
 
+data class CategorySpendingEntity(
+    val category: String,
+    val totalSpent: Long
+)
+
 @Dao
 interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY dateEpochMillis DESC")
@@ -18,6 +23,9 @@ interface TransactionDao {
 
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'EXPENSE' AND dateEpochMillis >= :startEpochMillis AND dateEpochMillis < :endEpochMillis")
     fun getExpenseTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Long>
+
+    @Query("SELECT category, COALESCE(SUM(amount), 0) AS totalSpent FROM transactions WHERE type = 'EXPENSE' AND dateEpochMillis >= :startEpochMillis AND dateEpochMillis < :endEpochMillis GROUP BY category")
+    fun getCategorySpendingByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<List<CategorySpendingEntity>>
 
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun getTransactionById(id: String): TransactionEntity?

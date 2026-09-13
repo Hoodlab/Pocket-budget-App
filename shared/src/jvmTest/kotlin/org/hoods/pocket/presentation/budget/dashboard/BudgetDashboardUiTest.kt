@@ -2,6 +2,7 @@ package org.hoods.pocket.presentation.budget.dashboard
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -234,5 +235,131 @@ class BudgetDashboardUiTest {
         waitForIdle()
 
         assertTrue(editClicked)
+    }
+
+    @Test
+    fun populatedCategoryBudgets_displaysCategoryCardsWithSpendingRemainingAndHealthBadge() = runComposeUiTest {
+        val budgetRepository = FakeBudgetRepository()
+        val categoryBudgetRepository = org.hoods.pocket.domain.usecase.FakeCategoryBudgetRepository()
+        val transactionRepository = FakeTransactionRepository()
+        val targetMonth = YearMonth(2026, 8)
+
+        // Set monthly budget: $3,000.00
+        budgetRepository.setMonthlyBudget(MonthlyBudget(targetMonth, 300000L))
+
+        // Set category budget: Groceries $600.00
+        categoryBudgetRepository.setCategoryBudget(
+            org.hoods.pocket.domain.model.CategoryBudget(targetMonth, org.hoods.pocket.domain.model.TransactionCategory.GROCERIES, 60000L)
+        )
+
+        // Expense: $450.00
+        transactionRepository.insertTransaction(
+            Transaction(
+                id = "tx-groc",
+                description = "Supermarket",
+                amount = 45000L,
+                type = TransactionType.EXPENSE,
+                date = Instant.parse("2026-08-15T12:00:00Z"),
+                category = org.hoods.pocket.domain.model.TransactionCategory.GROCERIES
+            )
+        )
+
+        val monthlyUseCase = GetMonthlyBudgetSummaryUseCase(budgetRepository, transactionRepository)
+        val categoryUseCase = org.hoods.pocket.domain.usecase.GetCategoryBudgetSummariesUseCase(categoryBudgetRepository, transactionRepository)
+
+        setContent {
+            val viewModel = BudgetDashboardViewModel(
+                getMonthlyBudgetSummaryUseCase = monthlyUseCase,
+                getCategoryBudgetSummariesUseCase = categoryUseCase,
+                initialMonth = targetMonth
+            )
+            BudgetDashboardScreen(
+                viewModel = viewModel,
+                onSetBudgetClick = {},
+                onNavigateToTransactions = {}
+            )
+        }
+
+        waitForIdle()
+
+        onNodeWithTag("category_budgets_title").assertIsDisplayed()
+        onNodeWithTag("category_budget_card_GROCERIES").assertIsDisplayed()
+        onNodeWithTag("category_name_GROCERIES").assertIsDisplayed()
+        onNodeWithText("Groceries", substring = true).assertIsDisplayed()
+        onNodeWithTag("category_amounts_GROCERIES").assertIsDisplayed()
+        onNodeWithTag("category_remaining_GROCERIES").assertIsDisplayed()
+        onNodeWithTag("category_remaining_GROCERIES").assertTextContains("150.00", substring = true)
+    }
+
+    @Test
+    fun nearLimitAndOverBudgetCategoryCards_displayCorrectHealthBadgesAndRemainingOrOverAmounts() = runComposeUiTest {
+        val budgetRepository = FakeBudgetRepository()
+        val categoryBudgetRepository = org.hoods.pocket.domain.usecase.FakeCategoryBudgetRepository()
+        val transactionRepository = FakeTransactionRepository()
+        val targetMonth = YearMonth(2026, 8)
+
+        budgetRepository.setMonthlyBudget(MonthlyBudget(targetMonth, 300000L))
+
+        // Transport: $200.00 limit, $160.00 spent (80% -> Near Limit)
+        categoryBudgetRepository.setCategoryBudget(
+            org.hoods.pocket.domain.model.CategoryBudget(targetMonth, org.hoods.pocket.domain.model.TransactionCategory.TRANSPORT, 20000L)
+        )
+        transactionRepository.insertTransaction(
+            Transaction(
+                id = "tx-trans",
+                description = "Gas & Train",
+                amount = 16000L,
+                type = TransactionType.EXPENSE,
+                date = Instant.parse("2026-08-10T12:00:00Z"),
+                category = org.hoods.pocket.domain.model.TransactionCategory.TRANSPORT
+            )
+        )
+
+        // Entertainment: $300.00 limit, $350.00 spent (116% -> Over Budget)
+        categoryBudgetRepository.setCategoryBudget(
+            org.hoods.pocket.domain.model.CategoryBudget(targetMonth, org.hoods.pocket.domain.model.TransactionCategory.ENTERTAINMENT, 30000L)
+        )
+        transactionRepository.insertTransaction(
+            Transaction(
+                id = "tx-ent",
+                description = "Concert",
+                amount = 35000L,
+                type = TransactionType.EXPENSE,
+                date = Instant.parse("2026-08-12T19:00:00Z"),
+                category = org.hoods.pocket.domain.model.TransactionCategory.ENTERTAINMENT
+            )
+        )
+
+        val monthlyUseCase = GetMonthlyBudgetSummaryUseCase(budgetRepository, transactionRepository)
+        val categoryUseCase = org.hoods.pocket.domain.usecase.GetCategoryBudgetSummariesUseCase(categoryBudgetRepository, transactionRepository)
+
+        setContent {
+            val viewModel = BudgetDashboardViewModel(
+                getMonthlyBudgetSummaryUseCase = monthlyUseCase,
+                getCategoryBudgetSummariesUseCase = categoryUseCase,
+                initialMonth = targetMonth
+            )
+            BudgetDashboardScreen(
+                viewModel = viewModel,
+                onSetBudgetClick = {},
+                onNavigateToTransactions = {}
+            )
+        }
+
+        waitForIdle()
+
+        // Transport assertions (Near Limit)
+        onNodeWithTag("category_budget_card_TRANSPORT").assertIsDisplayed()
+        onNodeWithTag("category_remaining_TRANSPORT").assertIsDisplayed()
+        onNodeWithTag("category_remaining_TRANSPORT").assertTextContains("40.00", substring = true)
+        onNodeWithTag("category_health_badge_TRANSPORT").assertIsDisplayed()
+        onNodeWithText("Near Limit", substring = true).assertIsDisplayed()
+
+        // Entertainment assertions (Over Budget)
+        onNodeWithTag("category_budget_card_ENTERTAINMENT").assertIsDisplayed()
+        onNodeWithTag("category_remaining_ENTERTAINMENT").assertIsDisplayed()
+        onNodeWithTag("category_remaining_ENTERTAINMENT").assertTextContains("50.00", substring = true)
+        onNodeWithTag("category_health_badge_ENTERTAINMENT").assertIsDisplayed()
+        onNodeWithText("Over Budget", substring = true).assertIsDisplayed()
     }
 }

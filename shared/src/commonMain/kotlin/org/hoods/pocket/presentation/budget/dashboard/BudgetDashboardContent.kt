@@ -1,5 +1,6 @@
 package org.hoods.pocket.presentation.budget.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,11 +37,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.BudgetHealthStatus
+import org.hoods.pocket.domain.model.CategoryBudgetSummary
 import org.hoods.pocket.domain.util.MoneyParser
 import org.hoods.pocket.presentation.theme.PocketColors
+import org.hoods.pocket.presentation.transaction.icon
 import androidx.compose.ui.tooling.preview.Preview
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -416,6 +420,50 @@ fun BudgetDashboardContent(
                             }
                         }
                     }
+
+                    if (uiState.categorySummaries.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(36.dp))
+
+                        Text(
+                            text = "Category Budgets",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PocketColors.OnSurface,
+                            modifier = Modifier.testTag("category_budgets_title")
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Monitor your monthly spending limits.",
+                            fontSize = 14.sp,
+                            color = PocketColors.OnSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        val columns = 3
+                        val categoryRows = uiState.categorySummaries.chunked(columns)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 1000.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            categoryRows.forEach { rowItems ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    rowItems.forEach { catSummary ->
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            CategoryBudgetDesktopCard(catSummary)
+                                        }
+                                    }
+                                    repeat(columns - rowItems.size) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         } else {
@@ -673,6 +721,29 @@ fun BudgetDashboardContent(
                         }
                     }
                 }
+
+                if (uiState.categorySummaries.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(28.dp))
+
+                    Text(
+                        text = "Category Budgets",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PocketColors.OnSurface,
+                        modifier = Modifier.testTag("category_budgets_title")
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        uiState.categorySummaries.forEach { catSummary ->
+                            CategoryBudgetMobileCard(catSummary)
+                        }
+                    }
+                }
             }
 
             // Mobile Bottom Navigation Bar (Fixed at bottom)
@@ -746,6 +817,318 @@ private fun HealthBadge(status: BudgetHealthStatus?) {
     }
 }
 
+@Composable
+private fun CategoryHealthBadge(
+    status: BudgetHealthStatus,
+    tag: String? = null,
+    fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
+    horizontalPadding: androidx.compose.ui.unit.Dp = 10.dp,
+    verticalPadding: androidx.compose.ui.unit.Dp = 3.dp
+) {
+    val (bgColor, textColor, label) = when (status) {
+        BudgetHealthStatus.ON_TRACK -> Triple(PocketColors.SurfaceContainer, PocketColors.Primary, "On Track")
+        BudgetHealthStatus.NEAR_LIMIT -> Triple(Color(0xFFFFE0B2), Color(0xFFE65100), "Near Limit")
+        BudgetHealthStatus.OVER_BUDGET -> Triple(Color(0xFFFFCDD2), PocketColors.Expense, "Over Budget")
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(percent = 50))
+            .background(bgColor)
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding)
+            .then(if (tag != null) Modifier.testTag(tag) else Modifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = fontSize,
+            fontWeight = FontWeight.SemiBold,
+            color = textColor
+        )
+    }
+}
+
+@Composable
+private fun CategoryBudgetMobileCard(
+    catSummary: CategoryBudgetSummary,
+    modifier: Modifier = Modifier
+) {
+    val isOver = catSummary.status == BudgetHealthStatus.OVER_BUDGET
+    val isNear = catSummary.status == BudgetHealthStatus.NEAR_LIMIT
+
+    val avatarBg = when {
+        isOver -> Color(0xFFFFEBEE)
+        isNear -> Color(0xFFFFF3E0)
+        else -> PocketColors.SurfaceContainerLow
+    }
+
+    val progressColor = when {
+        isOver -> PocketColors.Expense
+        isNear -> Color(0xFFE65100)
+        else -> PocketColors.Primary
+    }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("category_budget_card_${catSummary.category.name}"),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = PocketColors.SurfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp),
+        border = if (isOver) BorderStroke(1.dp, PocketColors.Expense.copy(alpha = 0.35f)) else null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header Row: Avatar + Name & Subtitle + Badge (if near or over)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(avatarBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = catSummary.category.icon, fontSize = 20.sp)
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = catSummary.category.displayName,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PocketColors.OnSurface,
+                        modifier = Modifier.testTag("category_name_${catSummary.category.name}")
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    val spent = MoneyParser.formatCentsToAmount(catSummary.spentAmount)
+                    val limit = MoneyParser.formatCentsToAmount(catSummary.limitAmount)
+                    Text(
+                        text = "$$spent of $$limit",
+                        fontSize = 13.sp,
+                        color = PocketColors.OnSurfaceVariant,
+                        modifier = Modifier.testTag("category_amounts_${catSummary.category.name}")
+                    )
+                }
+
+                CategoryHealthBadge(
+                    status = catSummary.status,
+                    tag = "category_health_badge_${catSummary.category.name}"
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Progress Bar
+            LinearProgressIndicator(
+                progress = { catSummary.progress.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .testTag("category_progress_${catSummary.category.name}"),
+                color = progressColor,
+                trackColor = PocketColors.SurfaceContainer
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Bottom Sub-Row: % Used + Left / Over
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val percentUsed = (catSummary.progress * 100).roundToInt()
+                Text(
+                    text = "$percentUsed% Used",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isOver) PocketColors.Expense else PocketColors.OnSurfaceVariant
+                )
+
+                if (catSummary.remainingAmount >= 0) {
+                    val rem = MoneyParser.formatCentsToAmount(catSummary.remainingAmount)
+                    Text(
+                        text = "$$rem left",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PocketColors.Primary,
+                        modifier = Modifier.testTag("category_remaining_${catSummary.category.name}")
+                    )
+                } else {
+                    val over = MoneyParser.formatCentsToAmount(abs(catSummary.remainingAmount))
+                    Text(
+                        text = "-$$over over budget",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PocketColors.Expense,
+                        modifier = Modifier.testTag("category_remaining_${catSummary.category.name}")
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryBudgetDesktopCard(
+    catSummary: CategoryBudgetSummary,
+    modifier: Modifier = Modifier
+) {
+    val isOver = catSummary.status == BudgetHealthStatus.OVER_BUDGET
+    val isNear = catSummary.status == BudgetHealthStatus.NEAR_LIMIT
+
+    val avatarBg = when {
+        isOver -> Color(0xFFFFEBEE)
+        isNear -> Color(0xFFFFF3E0)
+        else -> PocketColors.SurfaceContainerLow
+    }
+
+    val progressColor = when {
+        isOver -> PocketColors.Expense
+        isNear -> Color(0xFFE65100)
+        else -> PocketColors.Primary
+    }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("category_budget_card_${catSummary.category.name}"),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = PocketColors.SurfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = if (isOver) BorderStroke(1.dp, PocketColors.Expense.copy(alpha = 0.35f)) else null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header Row: Avatar + Category Name + Health Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(avatarBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = catSummary.category.icon, fontSize = 16.sp)
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = catSummary.category.displayName,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PocketColors.OnSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("category_name_${catSummary.category.name}")
+                )
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                CategoryHealthBadge(
+                    status = catSummary.status,
+                    tag = "category_health_badge_${catSummary.category.name}",
+                    fontSize = 10.sp,
+                    horizontalPadding = 8.dp,
+                    verticalPadding = 2.dp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Large spent amount of limit
+            val spent = MoneyParser.formatCentsToAmount(catSummary.spentAmount)
+            val limit = MoneyParser.formatCentsToAmount(catSummary.limitAmount)
+
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.testTag("category_amounts_${catSummary.category.name}")
+            ) {
+                Text(
+                    text = "$$spent",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PocketColors.OnSurface
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "of $$limit",
+                    fontSize = 13.sp,
+                    color = PocketColors.OnSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Sub row: Remaining / Over by + % Used
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (catSummary.remainingAmount >= 0) {
+                    val rem = MoneyParser.formatCentsToAmount(catSummary.remainingAmount)
+                    Text(
+                        text = "Remaining: $$rem",
+                        fontSize = 12.sp,
+                        color = PocketColors.OnSurfaceVariant,
+                        modifier = Modifier.testTag("category_remaining_${catSummary.category.name}")
+                    )
+                } else {
+                    val over = MoneyParser.formatCentsToAmount(abs(catSummary.remainingAmount))
+                    Text(
+                        text = "Over by $$over",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PocketColors.Expense,
+                        modifier = Modifier.testTag("category_remaining_${catSummary.category.name}")
+                    )
+                }
+
+                val percentUsed = (catSummary.progress * 100).roundToInt()
+                Text(
+                    text = "$percentUsed% Used",
+                    fontSize = 12.sp,
+                    color = PocketColors.OnSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Progress bar
+            LinearProgressIndicator(
+                progress = { catSummary.progress.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(CircleShape)
+                    .testTag("category_progress_${catSummary.category.name}"),
+                color = progressColor,
+                trackColor = PocketColors.SurfaceContainer
+            )
+        }
+    }
+}
+
 @Preview
 @Composable
 fun BudgetDashboardContentPreview() {
@@ -763,6 +1146,32 @@ fun BudgetDashboardContentPreview() {
                 remainingAmount = 42000L,
                 progress = 0.86f,
                 status = BudgetHealthStatus.NEAR_LIMIT
+            ),
+            categorySummaries = listOf(
+                CategoryBudgetSummary(
+                    category = org.hoods.pocket.domain.model.TransactionCategory.GROCERIES,
+                    limitAmount = 60000L,
+                    spentAmount = 45000L,
+                    remainingAmount = 15000L,
+                    progress = 0.75f,
+                    status = BudgetHealthStatus.ON_TRACK
+                ),
+                CategoryBudgetSummary(
+                    category = org.hoods.pocket.domain.model.TransactionCategory.TRANSPORT,
+                    limitAmount = 20000L,
+                    spentAmount = 12000L,
+                    remainingAmount = 8000L,
+                    progress = 0.60f,
+                    status = BudgetHealthStatus.ON_TRACK
+                ),
+                CategoryBudgetSummary(
+                    category = org.hoods.pocket.domain.model.TransactionCategory.ENTERTAINMENT,
+                    limitAmount = 30000L,
+                    spentAmount = 35000L,
+                    remainingAmount = -5000L,
+                    progress = 1.16f,
+                    status = BudgetHealthStatus.OVER_BUDGET
+                )
             )
         ),
         onSetBudgetClick = {},

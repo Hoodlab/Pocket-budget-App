@@ -25,6 +25,7 @@ import org.hoods.pocket.presentation.transaction.edit.EditTransactionUiState
 import org.hoods.pocket.presentation.transaction.list.TransactionListContent
 import org.hoods.pocket.presentation.transaction.list.TransactionListUiState
 import org.hoods.pocket.domain.model.BudgetHealthStatus
+import org.hoods.pocket.domain.model.CategoryBudgetSummary
 import org.hoods.pocket.domain.model.MonthlyBudget
 import org.hoods.pocket.domain.model.MonthlyBudgetSummary
 import org.hoods.pocket.presentation.budget.dashboard.BudgetDashboardContent
@@ -97,6 +98,41 @@ class VisualValidationCaptureTest {
         TransactionCategory.SHOPPING to "600.00",
         TransactionCategory.BILLS to "500.00",
         TransactionCategory.ENTERTAINMENT to "200.00"
+    )
+
+    private val sampleCategoryBudgetSummaries = listOf(
+        CategoryBudgetSummary(
+            category = TransactionCategory.GROCERIES,
+            limitAmount = 60000L,
+            spentAmount = 45000L,
+            remainingAmount = 15000L,
+            progress = 0.75f,
+            status = BudgetHealthStatus.ON_TRACK
+        ),
+        CategoryBudgetSummary(
+            category = TransactionCategory.TRANSPORT,
+            limitAmount = 20000L,
+            spentAmount = 16000L,
+            remainingAmount = 4000L,
+            progress = 0.80f,
+            status = BudgetHealthStatus.NEAR_LIMIT
+        ),
+        CategoryBudgetSummary(
+            category = TransactionCategory.ENTERTAINMENT,
+            limitAmount = 30000L,
+            spentAmount = 35000L,
+            remainingAmount = -5000L,
+            progress = 1.16f,
+            status = BudgetHealthStatus.OVER_BUDGET
+        ),
+        CategoryBudgetSummary(
+            category = TransactionCategory.SHOPPING,
+            limitAmount = 40000L,
+            spentAmount = 8000L,
+            remainingAmount = 32000L,
+            progress = 0.20f,
+            status = BudgetHealthStatus.ON_TRACK
+        )
     )
 
     // ==========================================
@@ -525,7 +561,8 @@ class VisualValidationCaptureTest {
                                 remainingAmount = 42000L,
                                 progress = 0.86f,
                                 status = BudgetHealthStatus.NEAR_LIMIT
-                            )
+                            ),
+                            categorySummaries = sampleCategoryBudgetSummaries
                         ),
                         onSetBudgetClick = {},
                         onNavigateToTransactions = {},
@@ -538,6 +575,43 @@ class VisualValidationCaptureTest {
         }
         waitForIdle()
         saveScreenshot("mobile-budget-dashboard-populated", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureMobile_budgetDashboard_uncategorized() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 390.dp, height = 844.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    BudgetDashboardContent(
+                        uiState = BudgetDashboardUiState(
+                            selectedMonth = targetMonth,
+                            isCurrentMonth = false,
+                            summary = MonthlyBudgetSummary(
+                                yearMonth = targetMonth,
+                                budget = MonthlyBudget(targetMonth, 300000L),
+                                totalExpense = 273000L, // 258000 + 15000 uncategorized
+                                remainingAmount = 27000L,
+                                progress = 0.91f,
+                                status = BudgetHealthStatus.NEAR_LIMIT
+                            ),
+                            categorySummaries = sampleCategoryBudgetSummaries
+                        ),
+                        onSetBudgetClick = {},
+                        onNavigateToTransactions = {},
+                        onPreviousMonthClick = {},
+                        onNextMonthClick = {},
+                        onCurrentMonthClick = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("mobile-budget-dashboard-uncategorized", onRoot().captureToImage())
     }
 
     @Test
@@ -648,7 +722,8 @@ class VisualValidationCaptureTest {
                                 remainingAmount = 42000L,
                                 progress = 0.86f,
                                 status = BudgetHealthStatus.NEAR_LIMIT
-                            )
+                            ),
+                            categorySummaries = sampleCategoryBudgetSummaries
                         ),
                         onSetBudgetClick = {},
                         onNavigateToTransactions = {},
@@ -661,6 +736,43 @@ class VisualValidationCaptureTest {
         }
         waitForIdle()
         saveScreenshot("desktop-budget-dashboard-populated", onRoot().captureToImage())
+    }
+
+    @Test
+    fun captureDesktop_budgetDashboard_uncategorized() = runComposeUiTest {
+        val targetMonth = YearMonth(2026, 8)
+        setContent {
+            PocketTheme {
+                Box(
+                    modifier = Modifier
+                        .size(width = 1024.dp, height = 768.dp)
+                        .background(PocketColors.Surface)
+                ) {
+                    BudgetDashboardContent(
+                        uiState = BudgetDashboardUiState(
+                            selectedMonth = targetMonth,
+                            isCurrentMonth = false,
+                            summary = MonthlyBudgetSummary(
+                                yearMonth = targetMonth,
+                                budget = MonthlyBudget(targetMonth, 300000L),
+                                totalExpense = 273000L, // 258000 + 15000 uncategorized
+                                remainingAmount = 27000L,
+                                progress = 0.91f,
+                                status = BudgetHealthStatus.NEAR_LIMIT
+                            ),
+                            categorySummaries = sampleCategoryBudgetSummaries
+                        ),
+                        onSetBudgetClick = {},
+                        onNavigateToTransactions = {},
+                        onPreviousMonthClick = {},
+                        onNextMonthClick = {},
+                        onCurrentMonthClick = {}
+                    )
+                }
+            }
+        }
+        waitForIdle()
+        saveScreenshot("desktop-budget-dashboard-uncategorized", onRoot().captureToImage())
     }
 
     @Test

@@ -2,6 +2,7 @@ package org.hoods.pocket.presentation.budget
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -270,5 +271,137 @@ class BudgetJourneyUiTest {
 
         // Back to dashboard
         onNodeWithText("Total Budget Used").assertIsDisplayed()
+    }
+
+    @Test
+    fun categoryBudgetHealthJourney_expenseAddChangeDelete_incomeIgnored_uncategorizedIsolated() = runComposeUiTest {
+        val transactionRepository = FakeTransactionRepository()
+        val budgetRepository = FakeBudgetRepository()
+        val categoryBudgetRepository = FakeCategoryBudgetRepository()
+        val currentMonth = YearMonth.now()
+        val prevMonth = currentMonth.previous()
+
+        setContent {
+            PocketBudgetRoot(
+                repository = transactionRepository,
+                budgetRepository = budgetRepository,
+                categoryBudgetRepository = categoryBudgetRepository
+            )
+        }
+
+        waitForIdle()
+
+        // 1. Navigate to Budgets tab
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+
+        // 2. Click Set Monthly Budget
+        onNodeWithTag("set_monthly_budget_button").performClick()
+        waitForIdle()
+
+        // 3. Enter Monthly Budget $1,000.00 and allocations: Groceries $400.00, Dining Out $200.00
+        onNodeWithTag("budget_amount_input").performTextInput("1000.00")
+        onNodeWithTag("category_allocation_input_groceries").performTextInput("400.00")
+        onNodeWithTag("category_allocation_input_dining").performTextInput("200.00")
+        onNodeWithTag("save_budget_button").performClick()
+        waitForIdle()
+
+        // 4. On dashboard: verify Category Budgets header and category cards
+        onNodeWithTag("category_budgets_title").assertIsDisplayed()
+        onNodeWithTag("category_budget_card_GROCERIES").assertIsDisplayed()
+        onNodeWithTag("category_budget_card_DINING").assertIsDisplayed()
+        onNodeWithTag("category_remaining_GROCERIES").assertTextContains("400.00", substring = true)
+        onNodeWithTag("category_remaining_DINING").assertTextContains("200.00", substring = true)
+
+        // 5. Navigate to Transactions tab and add Groceries expense: $320.00 (80% of $400 -> Near Limit)
+        onNodeWithTag("nav_transactions").performClick()
+        waitForIdle()
+        onNodeWithTag("add_transaction_fab").performClick()
+        waitForIdle()
+        onNodeWithTag("description_input").performTextInput("Weekly groceries")
+        onNodeWithTag("amount_input").performTextInput("320.00")
+        onNodeWithTag("category_chip_groceries").performClick()
+        onNodeWithTag("save_transaction_button").performClick()
+        waitForIdle()
+
+        // 6. Return to Budgets tab: verify Groceries is Near Limit ($80.00 left)
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+        onNodeWithTag("category_remaining_GROCERIES").assertTextContains("80.00", substring = true)
+        onNodeWithTag("category_health_badge_GROCERIES").assertIsDisplayed()
+        onNodeWithText("Near Limit", substring = true).assertIsDisplayed()
+
+        // 7. Add Income transaction of $500.00 (MUST NOT change category health)
+        onNodeWithTag("nav_transactions").performClick()
+        waitForIdle()
+        onNodeWithTag("add_transaction_fab").performClick()
+        waitForIdle()
+        onNodeWithTag("type_toggle_income").performClick()
+        onNodeWithTag("description_input").performTextInput("Paycheck")
+        onNodeWithTag("amount_input").performTextInput("500.00")
+        onNodeWithTag("category_chip_salary").performClick()
+        onNodeWithTag("save_transaction_button").performClick()
+        waitForIdle()
+
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+        // Groceries still $80.00 left, Near Limit
+        onNodeWithTag("category_remaining_GROCERIES").assertTextContains("80.00", substring = true)
+
+        // 8. Add Uncategorized expense of $50.00 (updates overall total, but no Uncategorized category card)
+        onNodeWithTag("nav_transactions").performClick()
+        waitForIdle()
+        onNodeWithTag("add_transaction_fab").performClick()
+        waitForIdle()
+        onNodeWithTag("description_input").performTextInput("Random item")
+        onNodeWithTag("amount_input").performTextInput("50.00")
+        // Default category is UNCATEGORIZED
+        onNodeWithTag("save_transaction_button").performClick()
+        waitForIdle()
+
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+        // Overall spent is $370.00 ($320 + $50)
+        onNodeWithText("370.00", substring = true).assertIsDisplayed()
+        // Groceries spent is still $320.00 ($80.00 left)
+        onNodeWithTag("category_remaining_GROCERIES").assertTextContains("80.00", substring = true)
+
+        // 9. Recategorise: Edit Groceries transaction to Dining ($320.00 on $200.00 limit -> Dining Over Budget)
+        onNodeWithTag("nav_transactions").performClick()
+        waitForIdle()
+        onNodeWithText("Weekly groceries").performClick()
+        waitForIdle()
+        onNodeWithTag("category_chip_dining").performClick()
+        onNodeWithTag("save_changes_button").performClick()
+        waitForIdle()
+
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+        // Groceries back to $400.00 left
+        onNodeWithTag("category_remaining_GROCERIES").assertTextContains("400.00", substring = true)
+        // Dining is now $320 on $200 limit -> Over Budget by $120.00
+        onNodeWithTag("category_remaining_DINING").assertTextContains("120.00", substring = true)
+        onNodeWithTag("category_health_badge_DINING").assertIsDisplayed()
+        onNodeWithText("Over Budget", substring = true).assertIsDisplayed()
+
+        // 10. Delete the Dining transaction
+        onNodeWithTag("nav_transactions").performClick()
+        waitForIdle()
+        onNodeWithText("Weekly groceries").performClick()
+        waitForIdle()
+        onNodeWithTag("delete_transaction_button").performClick()
+        waitForIdle()
+        onNodeWithTag("confirm_delete_button").performClick()
+        waitForIdle()
+
+        onNodeWithTag("nav_budgets").performClick()
+        waitForIdle()
+        // Dining restored to full $200.00 left
+        onNodeWithTag("category_remaining_DINING").assertTextContains("200.00", substring = true)
+
+        // 11. Month isolation: go to previous month
+        onNodeWithTag("previous_month_button").performClick()
+        waitForIdle()
+        onNodeWithText("No budget set for ${prevMonth.format()}", substring = true).assertIsDisplayed()
     }
 }

@@ -337,4 +337,56 @@ class RoomTransactionRepositoryTest {
         val total = repository.getExpenseTotalByDateRange(startMillis, endMillis).first()
         assertEquals(5000L, total) // 3500 + 1500; income and out-of-range excluded
     }
+
+    @Test
+    fun getCategorySpendingByDateRange_groupsExpensesByCategoryWithinRange_ignoringIncomeAndOutOfRange() = runTest {
+        val startMillis = Instant.parse("2026-08-01T00:00:00Z").toEpochMilliseconds()
+        val endMillis = Instant.parse("2026-09-01T00:00:00Z").toEpochMilliseconds()
+
+        val txBeforeExpense = Transaction(
+            "1", "July Expense", 1000L, TransactionType.EXPENSE,
+            Instant.parse("2026-07-31T23:59:59Z"), org.hoods.pocket.domain.model.TransactionCategory.GROCERIES
+        )
+        val txInExpense1 = Transaction(
+            "2", "Aug Groceries 1", 2500L, TransactionType.EXPENSE,
+            Instant.parse("2026-08-05T12:00:00Z"), org.hoods.pocket.domain.model.TransactionCategory.GROCERIES
+        )
+        val txInExpense2 = Transaction(
+            "3", "Aug Groceries 2", 1500L, TransactionType.EXPENSE,
+            Instant.parse("2026-08-20T12:00:00Z"), org.hoods.pocket.domain.model.TransactionCategory.GROCERIES
+        )
+        val txInDining = Transaction(
+            "4", "Aug Dining", 3000L, TransactionType.EXPENSE,
+            Instant.parse("2026-08-10T18:00:00Z"), org.hoods.pocket.domain.model.TransactionCategory.DINING
+        )
+        val txInIncome = Transaction(
+            "5", "Aug Salary", 500000L, TransactionType.INCOME,
+            Instant.parse("2026-08-15T12:00:00Z"), org.hoods.pocket.domain.model.TransactionCategory.SALARY
+        )
+        val txAfterExpense = Transaction(
+            "6", "Sep Dining", 4000L, TransactionType.EXPENSE,
+            Instant.parse("2026-09-01T00:00:00Z"), org.hoods.pocket.domain.model.TransactionCategory.DINING
+        )
+
+        repository.insertTransaction(txBeforeExpense)
+        repository.insertTransaction(txInExpense1)
+        repository.insertTransaction(txInExpense2)
+        repository.insertTransaction(txInDining)
+        repository.insertTransaction(txInIncome)
+        repository.insertTransaction(txAfterExpense)
+
+        val spending = repository.getCategorySpendingByDateRange(startMillis, endMillis).first()
+        assertEquals(4000L, spending[org.hoods.pocket.domain.model.TransactionCategory.GROCERIES])
+        assertEquals(3000L, spending[org.hoods.pocket.domain.model.TransactionCategory.DINING])
+        assertEquals(null, spending[org.hoods.pocket.domain.model.TransactionCategory.SALARY])
+    }
+
+    @Test
+    fun getCategorySpendingByDateRange_emptyTransactions_returnsEmptyMap() = runTest {
+        val startMillis = Instant.parse("2026-08-01T00:00:00Z").toEpochMilliseconds()
+        val endMillis = Instant.parse("2026-09-01T00:00:00Z").toEpochMilliseconds()
+
+        val spending = repository.getCategorySpendingByDateRange(startMillis, endMillis).first()
+        assertEquals(emptyMap(), spending)
+    }
 }
