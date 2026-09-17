@@ -1,11 +1,12 @@
 # Pocket Budget — Focused Reviewer Agents
 
-This directory documents the four focused, read-only reviewer agents configured for Pocket Budget:
+This directory documents the focused, read-only reviewer agents configured for Pocket Budget:
 
 1. **[Scope Reviewer](scope.md)** (`scope-reviewer`): Contract alignment, exclusion enforcement, abstraction control, and working tree hygiene.
 2. **[Architecture Reviewer](architecture.md)** (`architecture-reviewer`): Clean Architecture boundaries, KMP source-set isolation, screen quad decomposition, and unidirectional data flow.
 3. **[Domain Reviewer](domain.md)** (`domain-reviewer`): Financial precision (`Long` integer cents), visual ratio `Float` rules, timestamp uniformity (`kotlin.time.Instant`), entity invariants, and push-down query filtering.
 4. **[TDD & Evidence Reviewer](tdd-evidence.md)** (`tdd-evidence-reviewer`): Authentic RED $\to$ GREEN test cycles, contract-scoped UI journeys, dual-viewport visual matrices, and truthful verification gate reporting.
+5. **[Remote Service Reviewer](remote-service.md)** (`remote-service-reviewer`): Version-controlled remote migrations, authenticated Row Level Security, local security test suites, zero secrets in diffs, environment safety, and post-deployment verification.
 
 ---
 
@@ -37,4 +38,4 @@ This directory documents the four focused, read-only reviewer agents configured 
 ## Antigravity Durable Location & Invocation
 
 - Durable Antigravity skills are defined under `.agents/skills/<reviewer-name>/SKILL.md`.
-- Runtime subagents can be invoked concurrently via `invoke_subagent` using their respective registered names (`scope_reviewer`, `architecture_reviewer`, `domain_reviewer`, `tdd_evidence_reviewer`).
+- Runtime subagents can be invoked concurrently via `invoke_subagent` using their respective registered names (`scope_reviewer`, `architecture_reviewer`, `domain_reviewer`, `tdd_evidence_reviewer`, `remote_service_reviewer`).

@@ -43,6 +43,21 @@ trigger: always_on
 - Do not add or change Gradle dependencies without explicit approval.
 - Do not commit or push unless explicitly requested.
 
+## Remote services and Supabase
+
+- For Supabase authentication, remote persistence, Row Level Security, or sync work, follow the `remote-service-change` workflow and use the `supabase-offline-sync` skill.
+- Develop and test Supabase schema migrations and RLS policies locally before proposing any hosted Supabase change.
+- A hosted Supabase project is read-only until the user explicitly approves the exact remote mutation immediately before it is made.
+- Remote schema, RLS, authentication, and policy changes must be source controlled and reproducible from repository migration files. Do not rely on dashboard-only changes.
+- Room remains the source of truth for the UI. Screens read local Room data; remote data synchronises into Room in the background.
+- Every user-owned remote row requires authenticated ownership and Row Level Security enforcing `auth.uid() = user_id`.
+- Never place service-role keys, private credentials, or tokens in client code, tests, evidence, or repository files.
+- Runtime clients may use only the public Supabase URL and anon/publishable key through approved runtime configuration.
+- When sync is introduced, local writes must succeed before network work begins. Failed remote mutations must remain in persistent local sync state for retry.
+- Synchronised deletes require tombstones until remote confirmation.
+- Conflict behaviour and idempotency rules must be defined in the active implementation contract and tested before implementation.
+- Local data created before sign-in must never be silently assigned to an account or uploaded.
+
 ## UI quality gate
 
 - Automated UI tests must cover key user journeys and edge cases (add, invalid input, edit, cancel/confirm deletion, cross-screen navigation).
