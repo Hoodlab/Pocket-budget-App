@@ -36,8 +36,7 @@ class BudgetDashboardUiTest {
             )
             BudgetDashboardScreen(
                 viewModel = viewModel,
-                onSetBudgetClick = { setBudgetClicked = true },
-                onNavigateToTransactions = {}
+                onSetBudgetClick = { setBudgetClicked = true }
             )
         }
 
@@ -93,8 +92,7 @@ class BudgetDashboardUiTest {
             )
             BudgetDashboardScreen(
                 viewModel = viewModel,
-                onSetBudgetClick = {},
-                onNavigateToTransactions = {}
+                onSetBudgetClick = {}
             )
         }
 
@@ -147,8 +145,7 @@ class BudgetDashboardUiTest {
             )
             BudgetDashboardScreen(
                 viewModel = viewModel,
-                onSetBudgetClick = {},
-                onNavigateToTransactions = {}
+                onSetBudgetClick = {}
             )
         }
 
@@ -179,8 +176,7 @@ class BudgetDashboardUiTest {
             )
             BudgetDashboardScreen(
                 viewModel = viewModel,
-                onSetBudgetClick = {},
-                onNavigateToTransactions = {}
+                onSetBudgetClick = {}
             )
         }
 
@@ -223,8 +219,7 @@ class BudgetDashboardUiTest {
             )
             BudgetDashboardScreen(
                 viewModel = viewModel,
-                onSetBudgetClick = { editClicked = true },
-                onNavigateToTransactions = {}
+                onSetBudgetClick = { editClicked = true }
             )
         }
 
@@ -275,8 +270,7 @@ class BudgetDashboardUiTest {
             )
             BudgetDashboardScreen(
                 viewModel = viewModel,
-                onSetBudgetClick = {},
-                onNavigateToTransactions = {}
+                onSetBudgetClick = {}
             )
         }
 
@@ -341,8 +335,7 @@ class BudgetDashboardUiTest {
             )
             BudgetDashboardScreen(
                 viewModel = viewModel,
-                onSetBudgetClick = {},
-                onNavigateToTransactions = {}
+                onSetBudgetClick = {}
             )
         }
 

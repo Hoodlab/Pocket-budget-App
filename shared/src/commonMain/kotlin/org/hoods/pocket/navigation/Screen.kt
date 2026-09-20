@@ -17,4 +17,16 @@ sealed interface Screen {
 
     @Serializable
     data class SetBudget(val year: Int, val month: Int) : Screen
+
+    @Serializable
+    data object Auth : Screen
+
+    @Serializable
+    data object Account : Screen
+
+    @Serializable
+    data class ClaimData(val targetUserId: String) : Screen
+
+    @Serializable
+    data object SetupConfig : Screen
 }

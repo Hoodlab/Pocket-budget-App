@@ -34,8 +34,21 @@ trigger: always_on
 - ViewModels depend on domain use cases only. They must not depend on Room, repositories, or navigation controllers.
 - ViewModels expose one-time outcomes as events. They do not accept navigation callbacks.
 - Routes use serializable typed objects. Routes carry identifiers, never full domain objects. The navigation host owns back-stack behaviour.
+- Top-level navigation chrome (such as bottom navigation bars and responsive sidebars) belongs in the shared application shell (`PocketNavigationShell`) wrapping the navigation host. Feature screens must not construct their own top-level sidebars or bottom navigation chrome.
+- Authentication and data-ownership decisions (such as determining whether unassigned local data requires claiming upon sign-in) are owned by the relevant ViewModel (`SignInViewModel`) emitting explicit outcomes (`ClaimRequired`), while navigation hosts only respond to ViewModel events.
 - UI code uses theme tokens or `MaterialTheme`; do not hardcode colours.
 - Add a realistic preview for each stateless screen content composable when supported by the configured targets. Record a real exception when it is not supported.
+
+## Responsive layout
+
+- Layout must respond to available window size, not the device platform.
+- Derive a shared `AppLayoutMode` from Material window size classes at the application shell.
+- Use `Compact`, `Medium`, and `Expanded` modes rather than per-screen `isDesktop` checks or repeated hard-coded breakpoints.
+- The shared application shell (`PocketNavigationShell`) around `PocketNavHost` owns global responsive navigation decisions, keeping top-level destinations (Transactions, Budgets, Account) accessible across compact bottom navigation and wider sidebars.
+- Screen content receives the shared layout mode and adapts its own arrangement from it.
+- Feature screens and content must never render their own top-level application navigation chrome.
+- `BoxWithConstraints` is allowed only for a component’s local measurement needs, not for deciding the overall screen layout.
+- Responsive UI work must be verified and visually reviewed at compact and expanded viewport sizes when both are supported.
 
 ## Change discipline
 

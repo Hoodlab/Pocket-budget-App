@@ -6,12 +6,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
+
 @Composable
 fun SetBudgetScreen(
     viewModel: SetBudgetViewModel,
     onSaveSuccess: () -> Unit,
     onDeleteSuccess: () -> Unit = {},
     onDismiss: (() -> Unit)? = null,
+    layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -36,6 +40,7 @@ fun SetBudgetScreen(
         onDismissDelete = viewModel::dismissDelete,
         onConfirmDelete = viewModel::confirmDelete,
         onDismiss = onDismiss,
+        layoutMode = layoutMode,
         modifier = modifier
     )
 }

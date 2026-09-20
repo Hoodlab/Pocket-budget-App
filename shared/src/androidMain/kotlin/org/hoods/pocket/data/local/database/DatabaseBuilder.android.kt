@@ -3,11 +3,16 @@ package org.hoods.pocket.data.local.database
 import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import org.hoods.pocket.data.remote.SupabaseConfig
 import org.hoods.pocket.data.repository.RoomBudgetRepository
 import org.hoods.pocket.data.repository.RoomCategoryBudgetRepository
+import org.hoods.pocket.data.repository.RoomDataOwnershipRepository
 import org.hoods.pocket.data.repository.RoomTransactionRepository
+import org.hoods.pocket.data.repository.SupabaseAuthRepository
+import org.hoods.pocket.domain.repository.AuthRepository
 import org.hoods.pocket.domain.repository.BudgetRepository
 import org.hoods.pocket.domain.repository.CategoryBudgetRepository
+import org.hoods.pocket.domain.repository.DataOwnershipRepository
 import org.hoods.pocket.domain.repository.TransactionRepository
 
 fun getDatabaseBuilder(context: Context): RoomDatabase.Builder<AppDatabase> {
@@ -27,14 +32,30 @@ fun getSharedAppDatabase(context: Context): AppDatabase {
     }
 }
 
-fun createTransactionRepository(context: Context): TransactionRepository {
-    return RoomTransactionRepository(getSharedAppDatabase(context).transactionDao())
+private var authRepositoryInstance: AuthRepository? = null
+
+fun getSharedAuthRepository(config: SupabaseConfig = SupabaseConfig.local()): AuthRepository {
+    return authRepositoryInstance ?: synchronized(Unit) {
+        authRepositoryInstance ?: SupabaseAuthRepository(config).also { authRepositoryInstance = it }
+    }
 }
 
-fun createBudgetRepository(context: Context): BudgetRepository {
-    return RoomBudgetRepository(getSharedAppDatabase(context).budgetDao())
+fun createAuthRepository(config: SupabaseConfig = SupabaseConfig.local()): AuthRepository {
+    return getSharedAuthRepository(config)
 }
 
-fun createCategoryBudgetRepository(context: Context): CategoryBudgetRepository {
-    return RoomCategoryBudgetRepository(getSharedAppDatabase(context).categoryBudgetDao())
+fun createTransactionRepository(context: Context, authRepository: AuthRepository = getSharedAuthRepository()): TransactionRepository {
+    return RoomTransactionRepository(getSharedAppDatabase(context).transactionDao(), authRepository = authRepository)
+}
+
+fun createBudgetRepository(context: Context, authRepository: AuthRepository = getSharedAuthRepository()): BudgetRepository {
+    return RoomBudgetRepository(getSharedAppDatabase(context).budgetDao(), authRepository = authRepository)
+}
+
+fun createCategoryBudgetRepository(context: Context, authRepository: AuthRepository = getSharedAuthRepository()): CategoryBudgetRepository {
+    return RoomCategoryBudgetRepository(getSharedAppDatabase(context).categoryBudgetDao(), authRepository = authRepository)
+}
+
+fun createDataOwnershipRepository(context: Context): DataOwnershipRepository {
+    return RoomDataOwnershipRepository(getSharedAppDatabase(context).dataOwnershipDao())
 }

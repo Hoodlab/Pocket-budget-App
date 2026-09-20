@@ -53,12 +53,14 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+            implementation(libs.ktor.client.android)
         }
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
+            implementation(libs.compose.material3.windowSizeClass)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
@@ -68,6 +70,17 @@ kotlin {
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.androidx.navigation.compose)
             implementation(libs.kotlinx.serialization.core)
+            implementation(project.dependencies.platform(libs.supabase.bom))
+            implementation(libs.supabase.auth)
+            implementation(libs.ktor.client.core)
+        }
+
+        jvmMain.dependencies {
+            implementation(libs.ktor.client.cio)
+        }
+
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
 
         commonTest.dependencies {

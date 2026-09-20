@@ -6,11 +6,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
+
 @Composable
 fun AddTransactionScreen(
     viewModel: AddTransactionViewModel,
     onSaveSuccess: () -> Unit,
     onDismiss: (() -> Unit)? = null,
+    layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -34,6 +38,7 @@ fun AddTransactionScreen(
         onOpenDatePicker = viewModel::onOpenDatePicker,
         onDismissDatePicker = viewModel::onDismissDatePicker,
         onDateSelected = viewModel::onDateSelected,
+        layoutMode = layoutMode,
         modifier = modifier
     )
 }

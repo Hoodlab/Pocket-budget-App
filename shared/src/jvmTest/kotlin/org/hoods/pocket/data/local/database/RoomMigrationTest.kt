@@ -72,7 +72,7 @@ class RoomMigrationTest {
             // 2. Open with Room AppDatabase version 3 with MIGRATION_2_3 applied
             val database = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
 
             val repository = RoomTransactionRepository(database.transactionDao())
@@ -162,7 +162,7 @@ class RoomMigrationTest {
             // 2. Open with Room AppDatabase version 4 with MIGRATION_2_3 and MIGRATION_3_4
             val database = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
 
             // 3. Verify v3 data survived
@@ -194,6 +194,111 @@ class RoomMigrationTest {
             assertEquals(1, afterSave.size)
             assertEquals(TransactionCategory.GROCERIES, afterSave[0].category)
             assertEquals(60000L, afterSave[0].limitAmount)
+
+            database.close()
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
+    fun migration_4_to_5_addsUserIdColumnsAndPreservesExistingData() = runTest {
+        val tempFile = File.createTempFile("migration_test_v4_v5", ".db")
+        tempFile.deleteOnExit()
+
+        try {
+            // 1. Create a legacy v4 SQLite database
+            val driver = BundledSQLiteDriver()
+            val connection = driver.open(tempFile.absolutePath)
+
+            // Version 4 transactions table (with category, NO userId)
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS transactions (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    description TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    type TEXT NOT NULL,
+                    dateEpochMillis INTEGER NOT NULL,
+                    category TEXT NOT NULL
+                )
+                """.trimIndent()
+            )
+
+            // Version 4 monthly_budgets table (NO userId)
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS monthly_budgets (
+                    year INTEGER NOT NULL,
+                    month INTEGER NOT NULL,
+                    limitAmount INTEGER NOT NULL,
+                    PRIMARY KEY(year, month)
+                )
+                """.trimIndent()
+            )
+
+            // Version 4 category_budgets table (NO userId)
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS category_budgets (
+                    year INTEGER NOT NULL,
+                    month INTEGER NOT NULL,
+                    category TEXT NOT NULL,
+                    limitAmount INTEGER NOT NULL,
+                    PRIMARY KEY(year, month, category)
+                )
+                """.trimIndent()
+            )
+
+            connection.execSQL("PRAGMA user_version = 4")
+
+            // Insert sample transaction, monthly budget, and category budget in v4
+            connection.execSQL(
+                """
+                INSERT INTO transactions (id, description, amount, type, dateEpochMillis, category)
+                VALUES ('tx-v4-1', 'Target Groceries', 8500, 'EXPENSE', 1717171717000, 'GROCERIES')
+                """.trimIndent()
+            )
+            connection.execSQL(
+                """
+                INSERT INTO monthly_budgets (year, month, limitAmount)
+                VALUES (2026, 9, 400000)
+                """.trimIndent()
+            )
+            connection.execSQL(
+                """
+                INSERT INTO category_budgets (year, month, category, limitAmount)
+                VALUES (2026, 9, 'GROCERIES', 80000)
+                """.trimIndent()
+            )
+
+            connection.close()
+
+            // 2. Open with Room AppDatabase version 5 with MIGRATION_4_5 applied
+            val database = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
+                .setDriver(BundledSQLiteDriver())
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .build()
+
+            // 3. Verify v4 data survived and userId is null (unassigned)
+            val txRepo = RoomTransactionRepository(database.transactionDao())
+            val transactions = txRepo.getTransactions().first()
+            assertEquals(1, transactions.size)
+            assertEquals("Target Groceries", transactions[0].description)
+            assertEquals(8500L, transactions[0].amount)
+
+            // Verify unclaimed counts via DataOwnershipDao
+            val ownershipDao = database.dataOwnershipDao()
+            assertEquals(1, ownershipDao.getUnclaimedTransactionCount())
+            assertEquals(1, ownershipDao.getUnclaimedMonthlyBudgetCount())
+            assertEquals(1, ownershipDao.getUnclaimedCategoryBudgetCount())
+
+            // 4. Test atomic claiming
+            ownershipDao.claimAllUnassigned("test-account-uuid")
+
+            assertEquals(0, ownershipDao.getUnclaimedTransactionCount())
+            assertEquals(0, ownershipDao.getUnclaimedMonthlyBudgetCount())
+            assertEquals(0, ownershipDao.getUnclaimedCategoryBudgetCount())
 
             database.close()
         } finally {

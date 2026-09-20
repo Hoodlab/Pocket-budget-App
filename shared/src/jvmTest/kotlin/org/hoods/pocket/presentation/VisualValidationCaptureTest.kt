@@ -22,8 +22,14 @@ import org.hoods.pocket.presentation.transaction.add.AddTransactionContent
 import org.hoods.pocket.presentation.transaction.add.AddTransactionUiState
 import org.hoods.pocket.presentation.transaction.edit.EditTransactionContent
 import org.hoods.pocket.presentation.transaction.edit.EditTransactionUiState
+import org.hoods.pocket.navigation.PocketNavigationShell
+import org.hoods.pocket.navigation.TopLevelDestination
 import org.hoods.pocket.presentation.transaction.list.TransactionListContent
 import org.hoods.pocket.presentation.transaction.list.TransactionListUiState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
 import org.hoods.pocket.domain.model.BudgetHealthStatus
 import org.hoods.pocket.domain.model.CashFlowSummary
 import org.hoods.pocket.domain.model.CategoryBudgetSummary
@@ -54,6 +60,88 @@ class VisualValidationCaptureTest {
         val awtImage = imageBitmap.toAwtImage()
         ImageIO.write(awtImage, "PNG", file)
         assertTrue(file.exists() && file.length() > 0, "Screenshot file $name.png should exist and have bytes")
+    }
+
+    private fun androidx.compose.ui.test.ComposeUiTest.setMobileContent(
+        modifier: Modifier = Modifier.size(width = 390.dp, height = 844.dp),
+        content: @Composable () -> Unit
+    ) {
+        setContent {
+            PocketTheme {
+                CompositionLocalProvider(LocalAppLayoutMode provides AppLayoutMode.Compact) {
+                    Box(
+                        modifier = modifier.background(PocketColors.Surface)
+                    ) {
+                        content()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun androidx.compose.ui.test.ComposeUiTest.setDesktopContent(
+        modifier: Modifier = Modifier.size(width = 1024.dp, height = 768.dp),
+        content: @Composable () -> Unit
+    ) {
+        setContent {
+            PocketTheme {
+                CompositionLocalProvider(LocalAppLayoutMode provides AppLayoutMode.Expanded) {
+                    Box(
+                        modifier = modifier.background(PocketColors.Surface)
+                    ) {
+                        content()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun androidx.compose.ui.test.ComposeUiTest.setMobileShellContent(
+        activeDestination: TopLevelDestination,
+        content: @Composable () -> Unit
+    ) {
+        setContent {
+            PocketTheme {
+                CompositionLocalProvider(LocalAppLayoutMode provides AppLayoutMode.Compact) {
+                    Box(
+                        modifier = Modifier.size(width = 390.dp, height = 844.dp).background(PocketColors.Surface)
+                    ) {
+                        PocketNavigationShell(
+                            activeDestination = activeDestination,
+                            onNavigateToTransactions = {},
+                            onNavigateToBudgets = {},
+                            onNavigateToAccount = {},
+                            layoutMode = AppLayoutMode.Compact,
+                            content = content
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun androidx.compose.ui.test.ComposeUiTest.setDesktopShellContent(
+        activeDestination: TopLevelDestination,
+        content: @Composable () -> Unit
+    ) {
+        setContent {
+            PocketTheme {
+                CompositionLocalProvider(LocalAppLayoutMode provides AppLayoutMode.Expanded) {
+                    Box(
+                        modifier = Modifier.size(width = 1024.dp, height = 768.dp).background(PocketColors.Surface)
+                    ) {
+                        PocketNavigationShell(
+                            activeDestination = activeDestination,
+                            onNavigateToTransactions = {},
+                            onNavigateToBudgets = {},
+                            onNavigateToAccount = {},
+                            layoutMode = AppLayoutMode.Expanded,
+                            content = content
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private val sampleTransactions = listOf(
@@ -143,30 +231,22 @@ class VisualValidationCaptureTest {
     @Test
     fun captureMobile_transactionList_emptyState() = runComposeUiTest {
         val month = YearMonth(2026, 9)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    TransactionListContent(
-                        uiState = TransactionListUiState(
-                            selectedMonth = month,
-                            isCurrentMonth = true,
-                            transactions = emptyList(),
-                            cashFlow = CashFlowSummary(month, income = 0L, expense = 0L),
-                            budgetSummary = null,
-                            categorySummaries = emptyList()
-                        ),
-                        onAddTransactionClick = {},
-                        onTransactionClick = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setMobileShellContent(TopLevelDestination.TRANSACTIONS) {
+            TransactionListContent(
+                uiState = TransactionListUiState(
+                    selectedMonth = month,
+                    isCurrentMonth = true,
+                    transactions = emptyList(),
+                    cashFlow = CashFlowSummary(month, income = 0L, expense = 0L),
+                    budgetSummary = null,
+                    categorySummaries = emptyList()
+                ),
+                onAddTransactionClick = {},
+                onTransactionClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         val image = onRoot().captureToImage()
@@ -177,37 +257,29 @@ class VisualValidationCaptureTest {
     @Test
     fun captureMobile_transactionList_populatedState() = runComposeUiTest {
         val month = YearMonth(2026, 9)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    TransactionListContent(
-                        uiState = TransactionListUiState(
-                            selectedMonth = month,
-                            isCurrentMonth = true,
-                            transactions = sampleTransactions,
-                            cashFlow = CashFlowSummary(month, income = 500000L, expense = 258000L),
-                            budgetSummary = MonthlyBudgetSummary(
-                                yearMonth = month,
-                                budget = MonthlyBudget(month, 300000L),
-                                totalExpense = 258000L,
-                                remainingAmount = 42000L,
-                                progress = 0.86f,
-                                status = BudgetHealthStatus.NEAR_LIMIT
-                            ),
-                            categorySummaries = sampleCategoryBudgetSummaries
-                        ),
-                        onAddTransactionClick = {},
-                        onTransactionClick = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setMobileShellContent(TopLevelDestination.TRANSACTIONS) {
+            TransactionListContent(
+                uiState = TransactionListUiState(
+                    selectedMonth = month,
+                    isCurrentMonth = true,
+                    transactions = sampleTransactions,
+                    cashFlow = CashFlowSummary(month, income = 500000L, expense = 258000L),
+                    budgetSummary = MonthlyBudgetSummary(
+                        yearMonth = month,
+                        budget = MonthlyBudget(month, 300000L),
+                        totalExpense = 258000L,
+                        remainingAmount = 42000L,
+                        progress = 0.86f,
+                        status = BudgetHealthStatus.NEAR_LIMIT
+                    ),
+                    categorySummaries = sampleCategoryBudgetSummaries
+                ),
+                onAddTransactionClick = {},
+                onTransactionClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         val image = onRoot().captureToImage()
@@ -217,32 +289,24 @@ class VisualValidationCaptureTest {
 
     @Test
     fun captureMobile_addTransaction_expenseMode() = runComposeUiTest {
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    AddTransactionContent(
-                        uiState = AddTransactionUiState(
-                            selectedType = TransactionType.EXPENSE,
-                            selectedCategory = TransactionCategory.GROCERIES,
-                            description = "Coffee & Bakery",
-                            amountText = "12.50",
-                            dateString = "Today, Sep 9, 2026"
-                        ),
-                        onTypeSelected = {},
-                        onDescriptionChanged = {},
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onDismiss = {},
-                        onOpenDatePicker = {},
-                        onDismissDatePicker = {},
-                        onDateSelected = {}
-                    )
-                }
-            }
+        setMobileContent {
+            AddTransactionContent(
+                uiState = AddTransactionUiState(
+                    selectedType = TransactionType.EXPENSE,
+                    selectedCategory = TransactionCategory.GROCERIES,
+                    description = "Coffee & Bakery",
+                    amountText = "12.50",
+                    dateString = "Today, Sep 9, 2026"
+                ),
+                onTypeSelected = {},
+                onDescriptionChanged = {},
+                onAmountChanged = {},
+                onSaveClick = {},
+                onDismiss = {},
+                onOpenDatePicker = {},
+                onDismissDatePicker = {},
+                onDateSelected = {}
+            )
         }
         waitForIdle()
         val image = onRoot().captureToImage()
@@ -252,32 +316,24 @@ class VisualValidationCaptureTest {
 
     @Test
     fun captureMobile_addTransaction_incomeMode() = runComposeUiTest {
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    AddTransactionContent(
-                        uiState = AddTransactionUiState(
-                            selectedType = TransactionType.INCOME,
-                            selectedCategory = TransactionCategory.FREELANCE,
-                            description = "Freelance Consulting",
-                            amountText = "750.00",
-                            dateString = "Today, Sep 9, 2026"
-                        ),
-                        onTypeSelected = {},
-                        onDescriptionChanged = {},
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onDismiss = {},
-                        onOpenDatePicker = {},
-                        onDismissDatePicker = {},
-                        onDateSelected = {}
-                    )
-                }
-            }
+        setMobileContent {
+            AddTransactionContent(
+                uiState = AddTransactionUiState(
+                    selectedType = TransactionType.INCOME,
+                    selectedCategory = TransactionCategory.FREELANCE,
+                    description = "Freelance Consulting",
+                    amountText = "750.00",
+                    dateString = "Today, Sep 9, 2026"
+                ),
+                onTypeSelected = {},
+                onDescriptionChanged = {},
+                onAmountChanged = {},
+                onSaveClick = {},
+                onDismiss = {},
+                onOpenDatePicker = {},
+                onDismissDatePicker = {},
+                onDateSelected = {}
+            )
         }
         waitForIdle()
         val image = onRoot().captureToImage()
@@ -296,37 +352,29 @@ class VisualValidationCaptureTest {
             date = Instant.parse("2026-08-22T19:00:00Z")
         )
 
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    EditTransactionContent(
-                        uiState = EditTransactionUiState(
-                            initialTransaction = tx,
-                            selectedType = TransactionType.EXPENSE,
-                            selectedCategory = TransactionCategory.DINING,
-                            description = "Dinner with Friends",
-                            amountText = "65.00",
-                            dateString = "Aug 22, 2026",
-                            isLoading = false
-                        ),
-                        onTypeSelected = {},
-                        onDescriptionChanged = {},
-                        onAmountChanged = {},
-                        onRequestDelete = {},
-                        onDismissDelete = {},
-                        onConfirmDelete = {},
-                        onSaveClick = {},
-                        onDismiss = {},
-                        onOpenDatePicker = {},
-                        onDismissDatePicker = {},
-                        onDateSelected = {}
-                    )
-                }
-            }
+        setMobileContent {
+            EditTransactionContent(
+                uiState = EditTransactionUiState(
+                    initialTransaction = tx,
+                    selectedType = TransactionType.EXPENSE,
+                    selectedCategory = TransactionCategory.DINING,
+                    description = "Dinner with Friends",
+                    amountText = "65.00",
+                    dateString = "Aug 22, 2026",
+                    isLoading = false
+                ),
+                onTypeSelected = {},
+                onDescriptionChanged = {},
+                onAmountChanged = {},
+                onRequestDelete = {},
+                onDismissDelete = {},
+                onConfirmDelete = {},
+                onSaveClick = {},
+                onDismiss = {},
+                onOpenDatePicker = {},
+                onDismissDatePicker = {},
+                onDateSelected = {}
+            )
         }
         waitForIdle()
         val image = onRoot().captureToImage()
@@ -344,37 +392,29 @@ class VisualValidationCaptureTest {
             date = Instant.parse("2026-08-22T19:00:00Z")
         )
 
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(PocketColors.Surface)
-                ) {
-                    EditTransactionContent(
-                        uiState = EditTransactionUiState(
-                            initialTransaction = tx,
-                            selectedType = TransactionType.EXPENSE,
-                            description = "Dinner with Friends",
-                            amountText = "65.00",
-                            dateString = "Aug 22, 2026",
-                            showDeleteConfirmation = true,
-                            isLoading = false
-                        ),
-                        onTypeSelected = {},
-                        onDescriptionChanged = {},
-                        onAmountChanged = {},
-                        onRequestDelete = {},
-                        onDismissDelete = {},
-                        onConfirmDelete = {},
-                        onSaveClick = {},
-                        onDismiss = {},
-                        onOpenDatePicker = {},
-                        onDismissDatePicker = {},
-                        onDateSelected = {}
-                    )
-                }
-            }
+        setMobileContent(modifier = Modifier.fillMaxSize()) {
+            EditTransactionContent(
+                uiState = EditTransactionUiState(
+                    initialTransaction = tx,
+                    selectedType = TransactionType.EXPENSE,
+                    description = "Dinner with Friends",
+                    amountText = "65.00",
+                    dateString = "Aug 22, 2026",
+                    showDeleteConfirmation = true,
+                    isLoading = false
+                ),
+                onTypeSelected = {},
+                onDescriptionChanged = {},
+                onAmountChanged = {},
+                onRequestDelete = {},
+                onDismissDelete = {},
+                onConfirmDelete = {},
+                onSaveClick = {},
+                onDismiss = {},
+                onOpenDatePicker = {},
+                onDismissDatePicker = {},
+                onDateSelected = {}
+            )
         }
         waitForIdle()
         val image = onNode(isDialog()).captureToImage()
@@ -389,30 +429,22 @@ class VisualValidationCaptureTest {
     @Test
     fun captureDesktop_transactionList_emptyState() = runComposeUiTest {
         val month = YearMonth(2026, 9)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    TransactionListContent(
-                        uiState = TransactionListUiState(
-                            selectedMonth = month,
-                            isCurrentMonth = true,
-                            transactions = emptyList(),
-                            cashFlow = CashFlowSummary(month, income = 0L, expense = 0L),
-                            budgetSummary = null,
-                            categorySummaries = emptyList()
-                        ),
-                        onAddTransactionClick = {},
-                        onTransactionClick = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setDesktopShellContent(TopLevelDestination.TRANSACTIONS) {
+            TransactionListContent(
+                uiState = TransactionListUiState(
+                    selectedMonth = month,
+                    isCurrentMonth = true,
+                    transactions = emptyList(),
+                    cashFlow = CashFlowSummary(month, income = 0L, expense = 0L),
+                    budgetSummary = null,
+                    categorySummaries = emptyList()
+                ),
+                onAddTransactionClick = {},
+                onTransactionClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-transaction-list-empty", onRoot().captureToImage())
@@ -421,37 +453,29 @@ class VisualValidationCaptureTest {
     @Test
     fun captureDesktop_transactionList_populatedState() = runComposeUiTest {
         val month = YearMonth(2026, 9)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    TransactionListContent(
-                        uiState = TransactionListUiState(
-                            selectedMonth = month,
-                            isCurrentMonth = true,
-                            transactions = sampleTransactions,
-                            cashFlow = CashFlowSummary(month, income = 500000L, expense = 258000L),
-                            budgetSummary = MonthlyBudgetSummary(
-                                yearMonth = month,
-                                budget = MonthlyBudget(month, 300000L),
-                                totalExpense = 258000L,
-                                remainingAmount = 42000L,
-                                progress = 0.86f,
-                                status = BudgetHealthStatus.NEAR_LIMIT
-                            ),
-                            categorySummaries = sampleCategoryBudgetSummaries
-                        ),
-                        onAddTransactionClick = {},
-                        onTransactionClick = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setDesktopShellContent(TopLevelDestination.TRANSACTIONS) {
+            TransactionListContent(
+                uiState = TransactionListUiState(
+                    selectedMonth = month,
+                    isCurrentMonth = true,
+                    transactions = sampleTransactions,
+                    cashFlow = CashFlowSummary(month, income = 500000L, expense = 258000L),
+                    budgetSummary = MonthlyBudgetSummary(
+                        yearMonth = month,
+                        budget = MonthlyBudget(month, 300000L),
+                        totalExpense = 258000L,
+                        remainingAmount = 42000L,
+                        progress = 0.86f,
+                        status = BudgetHealthStatus.NEAR_LIMIT
+                    ),
+                    categorySummaries = sampleCategoryBudgetSummaries
+                ),
+                onAddTransactionClick = {},
+                onTransactionClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-transaction-list-populated", onRoot().captureToImage())
@@ -459,32 +483,24 @@ class VisualValidationCaptureTest {
 
     @Test
     fun captureDesktop_addTransaction() = runComposeUiTest {
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    AddTransactionContent(
-                        uiState = AddTransactionUiState(
-                            selectedType = TransactionType.EXPENSE,
-                            selectedCategory = TransactionCategory.SHOPPING,
-                            description = "Office Supplies",
-                            amountText = "85.20",
-                            dateString = "Today, Sep 9, 2026"
-                        ),
-                        onTypeSelected = {},
-                        onDescriptionChanged = {},
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onDismiss = {},
-                        onOpenDatePicker = {},
-                        onDismissDatePicker = {},
-                        onDateSelected = {}
-                    )
-                }
-            }
+        setDesktopContent {
+            AddTransactionContent(
+                uiState = AddTransactionUiState(
+                    selectedType = TransactionType.EXPENSE,
+                    selectedCategory = TransactionCategory.SHOPPING,
+                    description = "Office Supplies",
+                    amountText = "85.20",
+                    dateString = "Today, Sep 9, 2026"
+                ),
+                onTypeSelected = {},
+                onDescriptionChanged = {},
+                onAmountChanged = {},
+                onSaveClick = {},
+                onDismiss = {},
+                onOpenDatePicker = {},
+                onDismissDatePicker = {},
+                onDateSelected = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-add-transaction", onRoot().captureToImage())
@@ -501,37 +517,29 @@ class VisualValidationCaptureTest {
             date = Instant.parse("2026-09-04T12:30:00Z")
         )
 
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    EditTransactionContent(
-                        uiState = EditTransactionUiState(
-                            initialTransaction = tx,
-                            selectedType = TransactionType.EXPENSE,
-                            selectedCategory = TransactionCategory.DINING,
-                            description = "Client Lunch",
-                            amountText = "120.00",
-                            dateString = "Sep 4, 2026",
-                            isLoading = false
-                        ),
-                        onTypeSelected = {},
-                        onDescriptionChanged = {},
-                        onAmountChanged = {},
-                        onRequestDelete = {},
-                        onDismissDelete = {},
-                        onConfirmDelete = {},
-                        onSaveClick = {},
-                        onDismiss = {},
-                        onOpenDatePicker = {},
-                        onDismissDatePicker = {},
-                        onDateSelected = {}
-                    )
-                }
-            }
+        setDesktopContent {
+            EditTransactionContent(
+                uiState = EditTransactionUiState(
+                    initialTransaction = tx,
+                    selectedType = TransactionType.EXPENSE,
+                    selectedCategory = TransactionCategory.DINING,
+                    description = "Client Lunch",
+                    amountText = "120.00",
+                    dateString = "Sep 4, 2026",
+                    isLoading = false
+                ),
+                onTypeSelected = {},
+                onDescriptionChanged = {},
+                onAmountChanged = {},
+                onRequestDelete = {},
+                onDismissDelete = {},
+                onConfirmDelete = {},
+                onSaveClick = {},
+                onDismiss = {},
+                onOpenDatePicker = {},
+                onDismissDatePicker = {},
+                onDateSelected = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-edit-transaction", onRoot().captureToImage())
@@ -543,27 +551,18 @@ class VisualValidationCaptureTest {
 
     @Test
     fun captureMobile_budgetDashboard_empty() = runComposeUiTest {
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    BudgetDashboardContent(
-                        uiState = BudgetDashboardUiState(
-                            selectedMonth = YearMonth(2026, 9),
-                            isCurrentMonth = true,
-                            summary = null
-                        ),
-                        onSetBudgetClick = {},
-                        onNavigateToTransactions = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setMobileShellContent(TopLevelDestination.BUDGETS) {
+            BudgetDashboardContent(
+                uiState = BudgetDashboardUiState(
+                    selectedMonth = YearMonth(2026, 9),
+                    isCurrentMonth = true,
+                    summary = null
+                ),
+                onSetBudgetClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         saveScreenshot("mobile-budget-dashboard-empty", onRoot().captureToImage())
@@ -572,35 +571,26 @@ class VisualValidationCaptureTest {
     @Test
     fun captureMobile_budgetDashboard_populated() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    BudgetDashboardContent(
-                        uiState = BudgetDashboardUiState(
-                            selectedMonth = targetMonth,
-                            isCurrentMonth = false,
-                            summary = MonthlyBudgetSummary(
-                                yearMonth = targetMonth,
-                                budget = MonthlyBudget(targetMonth, 300000L),
-                                totalExpense = 258000L,
-                                remainingAmount = 42000L,
-                                progress = 0.86f,
-                                status = BudgetHealthStatus.NEAR_LIMIT
-                            ),
-                            categorySummaries = sampleCategoryBudgetSummaries
-                        ),
-                        onSetBudgetClick = {},
-                        onNavigateToTransactions = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setMobileShellContent(TopLevelDestination.BUDGETS) {
+            BudgetDashboardContent(
+                uiState = BudgetDashboardUiState(
+                    selectedMonth = targetMonth,
+                    isCurrentMonth = false,
+                    summary = MonthlyBudgetSummary(
+                        yearMonth = targetMonth,
+                        budget = MonthlyBudget(targetMonth, 300000L),
+                        totalExpense = 258000L,
+                        remainingAmount = 42000L,
+                        progress = 0.86f,
+                        status = BudgetHealthStatus.NEAR_LIMIT
+                    ),
+                    categorySummaries = sampleCategoryBudgetSummaries
+                ),
+                onSetBudgetClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         saveScreenshot("mobile-budget-dashboard-populated", onRoot().captureToImage())
@@ -609,35 +599,26 @@ class VisualValidationCaptureTest {
     @Test
     fun captureMobile_budgetDashboard_uncategorized() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    BudgetDashboardContent(
-                        uiState = BudgetDashboardUiState(
-                            selectedMonth = targetMonth,
-                            isCurrentMonth = false,
-                            summary = MonthlyBudgetSummary(
-                                yearMonth = targetMonth,
-                                budget = MonthlyBudget(targetMonth, 300000L),
-                                totalExpense = 273000L, // 258000 + 15000 uncategorized
-                                remainingAmount = 27000L,
-                                progress = 0.91f,
-                                status = BudgetHealthStatus.NEAR_LIMIT
-                            ),
-                            categorySummaries = sampleCategoryBudgetSummaries
-                        ),
-                        onSetBudgetClick = {},
-                        onNavigateToTransactions = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setMobileShellContent(TopLevelDestination.BUDGETS) {
+            BudgetDashboardContent(
+                uiState = BudgetDashboardUiState(
+                    selectedMonth = targetMonth,
+                    isCurrentMonth = false,
+                    summary = MonthlyBudgetSummary(
+                        yearMonth = targetMonth,
+                        budget = MonthlyBudget(targetMonth, 300000L),
+                        totalExpense = 273000L, // 258000 + 15000 uncategorized
+                        remainingAmount = 27000L,
+                        progress = 0.91f,
+                        status = BudgetHealthStatus.NEAR_LIMIT
+                    ),
+                    categorySummaries = sampleCategoryBudgetSummaries
+                ),
+                onSetBudgetClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         saveScreenshot("mobile-budget-dashboard-uncategorized", onRoot().captureToImage())
@@ -646,25 +627,17 @@ class VisualValidationCaptureTest {
     @Test
     fun captureMobile_setBudget() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    SetBudgetContent(
-                        uiState = SetBudgetUiState(
-                            yearMonth = targetMonth,
-                            amountText = "3000.00",
-                            categoryAllocations = sampleCategoryAllocations
-                        ),
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onDismiss = {}
-                    )
-                }
-            }
+        setMobileContent {
+            SetBudgetContent(
+                uiState = SetBudgetUiState(
+                    yearMonth = targetMonth,
+                    amountText = "3000.00",
+                    categoryAllocations = sampleCategoryAllocations
+                ),
+                onAmountChanged = {},
+                onSaveClick = {},
+                onDismiss = {}
+            )
         }
         waitForIdle()
         saveScreenshot("mobile-set-budget", onRoot().captureToImage())
@@ -673,26 +646,18 @@ class VisualValidationCaptureTest {
     @Test
     fun captureMobile_setBudget_overallocated() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    SetBudgetContent(
-                        uiState = SetBudgetUiState(
-                            yearMonth = targetMonth,
-                            amountText = "3000.00",
-                            categoryAllocations = sampleOverAllocations,
-                            errorMessage = "Total category allocations exceed monthly budget by $800.00"
-                        ),
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onDismiss = {}
-                    )
-                }
-            }
+        setMobileContent {
+            SetBudgetContent(
+                uiState = SetBudgetUiState(
+                    yearMonth = targetMonth,
+                    amountText = "3000.00",
+                    categoryAllocations = sampleOverAllocations,
+                    errorMessage = "Total category allocations exceed monthly budget by $800.00"
+                ),
+                onAmountChanged = {},
+                onSaveClick = {},
+                onDismiss = {}
+            )
         }
         waitForIdle()
         saveScreenshot("mobile-set-budget-overallocated", onRoot().captureToImage())
@@ -704,27 +669,18 @@ class VisualValidationCaptureTest {
 
     @Test
     fun captureDesktop_budgetDashboard_empty() = runComposeUiTest {
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    BudgetDashboardContent(
-                        uiState = BudgetDashboardUiState(
-                            selectedMonth = YearMonth(2026, 9),
-                            isCurrentMonth = true,
-                            summary = null
-                        ),
-                        onSetBudgetClick = {},
-                        onNavigateToTransactions = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setDesktopShellContent(TopLevelDestination.BUDGETS) {
+            BudgetDashboardContent(
+                uiState = BudgetDashboardUiState(
+                    selectedMonth = YearMonth(2026, 9),
+                    isCurrentMonth = true,
+                    summary = null
+                ),
+                onSetBudgetClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-budget-dashboard-empty", onRoot().captureToImage())
@@ -733,35 +689,26 @@ class VisualValidationCaptureTest {
     @Test
     fun captureDesktop_budgetDashboard_populated() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    BudgetDashboardContent(
-                        uiState = BudgetDashboardUiState(
-                            selectedMonth = targetMonth,
-                            isCurrentMonth = false,
-                            summary = MonthlyBudgetSummary(
-                                yearMonth = targetMonth,
-                                budget = MonthlyBudget(targetMonth, 300000L),
-                                totalExpense = 258000L,
-                                remainingAmount = 42000L,
-                                progress = 0.86f,
-                                status = BudgetHealthStatus.NEAR_LIMIT
-                            ),
-                            categorySummaries = sampleCategoryBudgetSummaries
-                        ),
-                        onSetBudgetClick = {},
-                        onNavigateToTransactions = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setDesktopShellContent(TopLevelDestination.BUDGETS) {
+            BudgetDashboardContent(
+                uiState = BudgetDashboardUiState(
+                    selectedMonth = targetMonth,
+                    isCurrentMonth = false,
+                    summary = MonthlyBudgetSummary(
+                        yearMonth = targetMonth,
+                        budget = MonthlyBudget(targetMonth, 300000L),
+                        totalExpense = 258000L,
+                        remainingAmount = 42000L,
+                        progress = 0.86f,
+                        status = BudgetHealthStatus.NEAR_LIMIT
+                    ),
+                    categorySummaries = sampleCategoryBudgetSummaries
+                ),
+                onSetBudgetClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-budget-dashboard-populated", onRoot().captureToImage())
@@ -770,35 +717,26 @@ class VisualValidationCaptureTest {
     @Test
     fun captureDesktop_budgetDashboard_uncategorized() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    BudgetDashboardContent(
-                        uiState = BudgetDashboardUiState(
-                            selectedMonth = targetMonth,
-                            isCurrentMonth = false,
-                            summary = MonthlyBudgetSummary(
-                                yearMonth = targetMonth,
-                                budget = MonthlyBudget(targetMonth, 300000L),
-                                totalExpense = 273000L, // 258000 + 15000 uncategorized
-                                remainingAmount = 27000L,
-                                progress = 0.91f,
-                                status = BudgetHealthStatus.NEAR_LIMIT
-                            ),
-                            categorySummaries = sampleCategoryBudgetSummaries
-                        ),
-                        onSetBudgetClick = {},
-                        onNavigateToTransactions = {},
-                        onPreviousMonthClick = {},
-                        onNextMonthClick = {},
-                        onCurrentMonthClick = {}
-                    )
-                }
-            }
+        setDesktopShellContent(TopLevelDestination.BUDGETS) {
+            BudgetDashboardContent(
+                uiState = BudgetDashboardUiState(
+                    selectedMonth = targetMonth,
+                    isCurrentMonth = false,
+                    summary = MonthlyBudgetSummary(
+                        yearMonth = targetMonth,
+                        budget = MonthlyBudget(targetMonth, 300000L),
+                        totalExpense = 273000L, // 258000 + 15000 uncategorized
+                        remainingAmount = 27000L,
+                        progress = 0.91f,
+                        status = BudgetHealthStatus.NEAR_LIMIT
+                    ),
+                    categorySummaries = sampleCategoryBudgetSummaries
+                ),
+                onSetBudgetClick = {},
+                onPreviousMonthClick = {},
+                onNextMonthClick = {},
+                onCurrentMonthClick = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-budget-dashboard-uncategorized", onRoot().captureToImage())
@@ -807,25 +745,17 @@ class VisualValidationCaptureTest {
     @Test
     fun captureDesktop_setBudget() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    SetBudgetContent(
-                        uiState = SetBudgetUiState(
-                            yearMonth = targetMonth,
-                            amountText = "3000.00",
-                            categoryAllocations = sampleCategoryAllocations
-                        ),
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onDismiss = {}
-                    )
-                }
-            }
+        setDesktopContent {
+            SetBudgetContent(
+                uiState = SetBudgetUiState(
+                    yearMonth = targetMonth,
+                    amountText = "3000.00",
+                    categoryAllocations = sampleCategoryAllocations
+                ),
+                onAmountChanged = {},
+                onSaveClick = {},
+                onDismiss = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-set-budget", onRoot().captureToImage())
@@ -834,26 +764,18 @@ class VisualValidationCaptureTest {
     @Test
     fun captureDesktop_setBudget_overallocated() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    SetBudgetContent(
-                        uiState = SetBudgetUiState(
-                            yearMonth = targetMonth,
-                            amountText = "3000.00",
-                            categoryAllocations = sampleOverAllocations,
-                            errorMessage = "Total category allocations exceed monthly budget by $800.00"
-                        ),
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onDismiss = {}
-                    )
-                }
-            }
+        setDesktopContent {
+            SetBudgetContent(
+                uiState = SetBudgetUiState(
+                    yearMonth = targetMonth,
+                    amountText = "3000.00",
+                    categoryAllocations = sampleOverAllocations,
+                    errorMessage = "Total category allocations exceed monthly budget by $800.00"
+                ),
+                onAmountChanged = {},
+                onSaveClick = {},
+                onDismiss = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-set-budget-overallocated", onRoot().captureToImage())
@@ -862,29 +784,21 @@ class VisualValidationCaptureTest {
     @Test
     fun captureMobile_editBudget() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    SetBudgetContent(
-                        uiState = SetBudgetUiState(
-                            yearMonth = targetMonth,
-                            amountText = "3000.00",
-                            categoryAllocations = sampleCategoryAllocations,
-                            isExistingBudget = true
-                        ),
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onRequestDelete = {},
-                        onDismissDelete = {},
-                        onConfirmDelete = {},
-                        onDismiss = {}
-                    )
-                }
-            }
+        setMobileContent {
+            SetBudgetContent(
+                uiState = SetBudgetUiState(
+                    yearMonth = targetMonth,
+                    amountText = "3000.00",
+                    categoryAllocations = sampleCategoryAllocations,
+                    isExistingBudget = true
+                ),
+                onAmountChanged = {},
+                onSaveClick = {},
+                onRequestDelete = {},
+                onDismissDelete = {},
+                onConfirmDelete = {},
+                onDismiss = {}
+            )
         }
         waitForIdle()
         saveScreenshot("mobile-edit-budget", onRoot().captureToImage())
@@ -893,29 +807,21 @@ class VisualValidationCaptureTest {
     @Test
     fun captureMobile_deleteBudgetDialog() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 390.dp, height = 844.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    SetBudgetContent(
-                        uiState = SetBudgetUiState(
-                            yearMonth = targetMonth,
-                            amountText = "3000.00",
-                            isExistingBudget = true,
-                            showDeleteConfirmation = true
-                        ),
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onRequestDelete = {},
-                        onDismissDelete = {},
-                        onConfirmDelete = {},
-                        onDismiss = {}
-                    )
-                }
-            }
+        setMobileContent {
+            SetBudgetContent(
+                uiState = SetBudgetUiState(
+                    yearMonth = targetMonth,
+                    amountText = "3000.00",
+                    isExistingBudget = true,
+                    showDeleteConfirmation = true
+                ),
+                onAmountChanged = {},
+                onSaveClick = {},
+                onRequestDelete = {},
+                onDismissDelete = {},
+                onConfirmDelete = {},
+                onDismiss = {}
+            )
         }
         waitForIdle()
         val image = onNode(isDialog()).captureToImage()
@@ -925,29 +831,21 @@ class VisualValidationCaptureTest {
     @Test
     fun captureDesktop_editBudget() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    SetBudgetContent(
-                        uiState = SetBudgetUiState(
-                            yearMonth = targetMonth,
-                            amountText = "3000.00",
-                            categoryAllocations = sampleCategoryAllocations,
-                            isExistingBudget = true
-                        ),
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onRequestDelete = {},
-                        onDismissDelete = {},
-                        onConfirmDelete = {},
-                        onDismiss = {}
-                    )
-                }
-            }
+        setDesktopContent {
+            SetBudgetContent(
+                uiState = SetBudgetUiState(
+                    yearMonth = targetMonth,
+                    amountText = "3000.00",
+                    categoryAllocations = sampleCategoryAllocations,
+                    isExistingBudget = true
+                ),
+                onAmountChanged = {},
+                onSaveClick = {},
+                onRequestDelete = {},
+                onDismissDelete = {},
+                onConfirmDelete = {},
+                onDismiss = {}
+            )
         }
         waitForIdle()
         saveScreenshot("desktop-edit-budget", onRoot().captureToImage())
@@ -956,29 +854,21 @@ class VisualValidationCaptureTest {
     @Test
     fun captureDesktop_deleteBudgetDialog() = runComposeUiTest {
         val targetMonth = YearMonth(2026, 8)
-        setContent {
-            PocketTheme {
-                Box(
-                    modifier = Modifier
-                        .size(width = 1024.dp, height = 768.dp)
-                        .background(PocketColors.Surface)
-                ) {
-                    SetBudgetContent(
-                        uiState = SetBudgetUiState(
-                            yearMonth = targetMonth,
-                            amountText = "3000.00",
-                            isExistingBudget = true,
-                            showDeleteConfirmation = true
-                        ),
-                        onAmountChanged = {},
-                        onSaveClick = {},
-                        onRequestDelete = {},
-                        onDismissDelete = {},
-                        onConfirmDelete = {},
-                        onDismiss = {}
-                    )
-                }
-            }
+        setDesktopContent {
+            SetBudgetContent(
+                uiState = SetBudgetUiState(
+                    yearMonth = targetMonth,
+                    amountText = "3000.00",
+                    isExistingBudget = true,
+                    showDeleteConfirmation = true
+                ),
+                onAmountChanged = {},
+                onSaveClick = {},
+                onRequestDelete = {},
+                onDismissDelete = {},
+                onConfirmDelete = {},
+                onDismiss = {}
+            )
         }
         waitForIdle()
         val image = onNode(isDialog()).captureToImage()

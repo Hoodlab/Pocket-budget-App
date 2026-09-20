@@ -10,15 +10,15 @@ import org.hoods.pocket.data.local.entity.MonthlyBudgetEntity
 @Dao
 interface BudgetDao {
 
-    @Query("SELECT * FROM monthly_budgets WHERE year = :year AND month = :month")
-    fun getMonthlyBudget(year: Int, month: Int): Flow<MonthlyBudgetEntity?>
+    @Query("SELECT * FROM monthly_budgets WHERE year = :year AND month = :month AND ((:activeUserId IS NULL AND userId IS NULL) OR (userId = :activeUserId))")
+    fun getMonthlyBudget(year: Int, month: Int, activeUserId: String? = null): Flow<MonthlyBudgetEntity?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateMonthlyBudget(budget: MonthlyBudgetEntity)
 
-    @Query("DELETE FROM monthly_budgets WHERE year = :year AND month = :month")
-    suspend fun deleteMonthlyBudget(year: Int, month: Int)
+    @Query("DELETE FROM monthly_budgets WHERE year = :year AND month = :month AND ((:activeUserId IS NULL AND userId IS NULL) OR (userId = :activeUserId))")
+    suspend fun deleteMonthlyBudget(year: Int, month: Int, activeUserId: String? = null)
 
-    @Query("SELECT * FROM monthly_budgets")
-    fun getAllBudgets(): Flow<List<MonthlyBudgetEntity>>
+    @Query("SELECT * FROM monthly_budgets WHERE (:activeUserId IS NULL AND userId IS NULL) OR (userId = :activeUserId)")
+    fun getAllBudgets(activeUserId: String? = null): Flow<List<MonthlyBudgetEntity>>
 }

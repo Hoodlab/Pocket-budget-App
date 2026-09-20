@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +47,8 @@ import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.domain.util.MoneyParser
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
 import org.hoods.pocket.presentation.theme.PocketColors
 import org.hoods.pocket.presentation.transaction.icon
 import kotlin.math.abs
@@ -61,51 +62,110 @@ fun TransactionListContent(
     onPreviousMonthClick: () -> Unit = {},
     onNextMonthClick: () -> Unit = {},
     onCurrentMonthClick: () -> Unit = {},
-    onNavigateToBudgets: () -> Unit = {},
+    layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(
+    val isExpanded = layoutMode.isExpanded
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(PocketColors.Surface)
     ) {
-        val isDesktop = maxWidth >= 720.dp
-
-        if (isDesktop) {
+        if (isExpanded) {
             // ==========================================
-            // Desktop Layout (Sidebar + Container Card)
+            // Desktop Layout (Main Content Panel)
             // ==========================================
-            Row(modifier = Modifier.fillMaxSize()) {
-                // Left Navigation Rail
-                Column(
-                    modifier = Modifier
-                        .width(220.dp)
-                        .fillMaxHeight()
-                        .background(PocketColors.Surface)
-                        .padding(horizontal = 20.dp, vertical = 28.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+            ) {
+                // Top Month Header & Navigation
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Pocket Budget",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PocketColors.Primary
-                    )
-                    Text(
-                        text = "Financial Wellness",
-                        fontSize = 13.sp,
-                        color = PocketColors.OnSurfaceVariant
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = uiState.selectedMonth.format(),
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PocketColors.Primary,
+                            modifier = Modifier.testTag("selected_month_text")
+                        )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                        // Navigation arrows
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(PocketColors.SurfaceContainer)
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { onPreviousMonthClick() }
+                                    .testTag("previous_month_button"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "‹",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PocketColors.OnSurface
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { onNextMonthClick() }
+                                    .testTag("next_month_button"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "›",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PocketColors.OnSurface
+                                )
+                            }
+                        }
 
-                    // + Add Transaction Action Button
+                        if (!uiState.isCurrentMonth) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(PocketColors.Primary)
+                                    .clickable { onCurrentMonthClick() }
+                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                    .testTag("current_month_button"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Today",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = PocketColors.OnPrimary
+                                )
+                            }
+                        }
+                    }
+
+                    // + Add Transaction Action Button on Desktop Header
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
                             .clip(CircleShape)
                             .background(PocketColors.Primary)
                             .clickable { onAddTransactionClick() }
-                            .padding(vertical = 12.dp)
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
                             .testTag("add_transaction_fab"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -116,142 +176,7 @@ fun TransactionListContent(
                             color = PocketColors.OnPrimary
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(28.dp))
-
-                    // Active Navigation Item: Transactions
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PocketColors.SurfaceContainer)
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(
-                            text = "Transactions",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = PocketColors.Primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Navigation Item: Budgets
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onNavigateToBudgets() }
-                            .padding(horizontal = 16.dp)
-                            .testTag("nav_budgets"),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(
-                            text = "Budgets",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = PocketColors.OnSurfaceVariant
-                        )
-                    }
                 }
-
-                // Vertical hairline divider
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .fillMaxHeight()
-                        .background(PocketColors.OutlineVariant.copy(alpha = 0.3f))
-                )
-
-                // Main Content Panel
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(24.dp)
-                ) {
-                    // Top Month Header & Navigation
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = uiState.selectedMonth.format(),
-                                fontSize = 26.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PocketColors.Primary,
-                                modifier = Modifier.testTag("selected_month_text")
-                            )
-
-                            // Navigation arrows
-                            Row(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(PocketColors.SurfaceContainer)
-                                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .clickable { onPreviousMonthClick() }
-                                        .testTag("previous_month_button"),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "‹",
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PocketColors.OnSurface
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .clickable { onNextMonthClick() }
-                                        .testTag("next_month_button"),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "›",
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PocketColors.OnSurface
-                                    )
-                                }
-                            }
-
-                            if (!uiState.isCurrentMonth) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .background(PocketColors.Primary)
-                                        .clickable { onCurrentMonthClick() }
-                                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                                        .testTag("current_month_button"),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Today",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = PocketColors.OnPrimary
-                                    )
-                                }
-                            }
-                        }
-                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -382,7 +307,6 @@ fun TransactionListContent(
                         )
                     }
                 }
-            }
         } else {
             // ==========================================
             // Mobile Layout (Handheld Portrait)
@@ -390,7 +314,7 @@ fun TransactionListContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 64.dp)
+                    .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 16.dp)
             ) {
                 // Header
                 Row(
@@ -568,7 +492,7 @@ fun TransactionListContent(
                 onClick = onAddTransactionClick,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(bottom = 80.dp, end = 24.dp)
+                    .padding(bottom = 16.dp, end = 24.dp)
                     .testTag("add_transaction_fab"),
                 containerColor = PocketColors.Primary,
                 contentColor = PocketColors.OnPrimary,
@@ -579,47 +503,6 @@ fun TransactionListContent(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
-            }
-
-            // Mobile Bottom Navigation Bar (Fixed at bottom)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize(),
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .background(PocketColors.SurfaceContainerLowest)
-                        .padding(horizontal = 32.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Transactions Tab (Active)
-                    Column(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PocketColors.SurfaceContainer)
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .testTag("nav_transactions"),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = "🧾", fontSize = 18.sp)
-                        Text(text = "Transactions", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PocketColors.Primary)
-                    }
-
-                    // Budgets Tab
-                    Column(
-                        modifier = Modifier
-                            .clickable { onNavigateToBudgets() }
-                            .testTag("nav_budgets"),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = "💵", fontSize = 18.sp)
-                        Text(text = "Budgets", fontSize = 11.sp, color = PocketColors.OnSurfaceVariant)
-                    }
-                }
             }
         }
     }

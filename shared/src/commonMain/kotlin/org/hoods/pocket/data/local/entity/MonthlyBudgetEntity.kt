@@ -6,5 +6,6 @@ import androidx.room.Entity
 data class MonthlyBudgetEntity(
     val year: Int,
     val month: Int,
-    val limitAmount: Long
+    val limitAmount: Long,
+    val userId: String? = null
 )

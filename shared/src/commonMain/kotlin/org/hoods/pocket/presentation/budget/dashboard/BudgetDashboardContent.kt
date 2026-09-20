@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -50,143 +49,54 @@ import androidx.compose.ui.tooling.preview.Preview
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
+
 @Composable
 fun BudgetDashboardContent(
     uiState: BudgetDashboardUiState,
     onSetBudgetClick: () -> Unit,
-    onNavigateToTransactions: () -> Unit,
     onPreviousMonthClick: () -> Unit,
     onNextMonthClick: () -> Unit,
     onCurrentMonthClick: () -> Unit,
+    layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(
+    val isExpanded = layoutMode.isExpanded
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(PocketColors.Surface)
     ) {
-        val isDesktop = maxWidth >= 720.dp
-
-        if (isDesktop) {
+        if (isExpanded) {
             // ==========================================
-            // Desktop Layout (Widescreen Sidebar + Main Panel)
+            // Desktop Layout (Main Content Panel)
             // ==========================================
-            Row(modifier = Modifier.fillMaxSize()) {
-                // Fixed Sidebar (260dp)
-                Column(
-                    modifier = Modifier
-                        .width(260.dp)
-                        .fillMaxHeight()
-                        .background(PocketColors.Surface)
-                        .padding(horizontal = 24.dp, vertical = 32.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(32.dp)
+            ) {
+                // Top Header: Title + Month Navigation + Action
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Pocket Budget",
-                        fontSize = 20.sp,
+                        text = "Budget Progress",
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PocketColors.Primary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Financial Wellness",
-                        fontSize = 13.sp,
-                        color = PocketColors.OnSurfaceVariant
+                        color = PocketColors.OnSurface
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    // Primary Action: + Set Monthly Budget
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(CircleShape)
-                            .background(PocketColors.Primary)
-                            .clickable { onSetBudgetClick() }
-                            .testTag("sidebar_set_budget_button"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "+ Set Budget",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = PocketColors.OnPrimary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(28.dp))
-
-                    // Navigation Item: Transactions
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onNavigateToTransactions() }
-                            .padding(horizontal = 16.dp)
-                            .testTag("nav_transactions"),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(
-                            text = "Transactions",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = PocketColors.OnSurfaceVariant
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Active Navigation Item: Budgets
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PocketColors.SurfaceContainer)
-                            .padding(horizontal = 16.dp)
-                            .testTag("nav_budgets"),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(
-                            text = "Budgets",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = PocketColors.Primary
-                        )
-                    }
-                }
-
-                // Vertical hairline divider
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .fillMaxHeight()
-                        .background(PocketColors.OutlineVariant.copy(alpha = 0.3f))
-                )
-
-                // Main Content Panel
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState())
-                        .padding(32.dp)
-                ) {
-                    // Top Header: Title + Month Navigation
+                    // Month Navigation Control + Action Button
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = "Budget Progress",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PocketColors.OnSurface
-                        )
-
-                        // Month Navigation Control
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -248,7 +158,26 @@ fun BudgetDashboardContent(
                                 }
                             }
                         }
+
+                        // Primary Action: + Set Monthly Budget
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(PocketColors.Primary)
+                                .clickable { onSetBudgetClick() }
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                                .testTag("sidebar_set_budget_button"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "+ Set Budget",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PocketColors.OnPrimary
+                            )
+                        }
                     }
+                }
 
                     Spacer(modifier = Modifier.height(28.dp))
 
@@ -467,7 +396,6 @@ fun BudgetDashboardContent(
                         }
                     }
                 }
-            }
         } else {
             // ==========================================
             // Mobile Layout (Handheld Portrait)
@@ -475,7 +403,6 @@ fun BudgetDashboardContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 72.dp) // Leave space for bottom nav
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 24.dp)
             ) {
@@ -745,48 +672,6 @@ fun BudgetDashboardContent(
                         uiState.categorySummaries.forEach { catSummary ->
                             CategoryBudgetMobileCard(catSummary)
                         }
-                    }
-                }
-            }
-
-            // Mobile Bottom Navigation Bar (Fixed at bottom)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 0.dp),
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .background(PocketColors.SurfaceContainerLowest)
-                        .padding(horizontal = 32.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Transactions Tab
-                    Column(
-                        modifier = Modifier
-                            .clickable { onNavigateToTransactions() }
-                            .testTag("nav_transactions"),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = "🧾", fontSize = 18.sp)
-                        Text(text = "Transactions", fontSize = 11.sp, color = PocketColors.OnSurfaceVariant)
-                    }
-
-                    // Budgets Tab (Active)
-                    Column(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PocketColors.SurfaceContainer)
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .testTag("nav_budgets"),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = "💵", fontSize = 18.sp)
-                        Text(text = "Budgets", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PocketColors.Primary)
                     }
                 }
             }
@@ -1178,7 +1063,6 @@ fun BudgetDashboardContentPreview() {
             )
         ),
         onSetBudgetClick = {},
-        onNavigateToTransactions = {},
         onPreviousMonthClick = {},
         onNextMonthClick = {},
         onCurrentMonthClick = {}

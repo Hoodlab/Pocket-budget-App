@@ -1,6 +1,9 @@
 package org.hoods.pocket.data.repository
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import org.hoods.pocket.data.local.dao.TransactionDao
 import org.hoods.pocket.data.local.entity.TransactionEntity
@@ -8,54 +11,77 @@ import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.repository.TransactionRepository
+import kotlinx.coroutines.flow.distinctUntilChanged
+import org.hoods.pocket.domain.model.AuthState
+import org.hoods.pocket.domain.repository.AuthRepository
 import kotlin.time.Instant
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class RoomTransactionRepository(
-    private val dao: TransactionDao
+    private val dao: TransactionDao,
+    private val authRepository: AuthRepository? = null,
+    private val activeUserId: () -> String? = { authRepository?.currentUser()?.id },
+    private val activeUserIdFlow: Flow<String?>? = null
 ) : TransactionRepository {
 
+    private val userFlow: Flow<String?>
+        get() = (activeUserIdFlow
+            ?: authRepository?.authState?.map { (it as? AuthState.Authenticated)?.user?.id }
+            ?: flowOf(activeUserId())
+        ).distinctUntilChanged()
+
     override fun getTransactions(): Flow<List<Transaction>> {
-        return dao.getAllTransactions().map { entities ->
-            entities.map { entity ->
-                Transaction(
-                    id = entity.id,
-                    description = entity.description,
-                    amount = entity.amount,
-                    type = TransactionType.valueOf(entity.type),
-                    date = Instant.fromEpochMilliseconds(entity.dateEpochMillis),
-                    category = TransactionCategory.fromName(entity.category)
-                )
+        return userFlow.flatMapLatest { userId ->
+            dao.getAllTransactions(userId).map { entities ->
+                entities.map { entity ->
+                    Transaction(
+                        id = entity.id,
+                        description = entity.description,
+                        amount = entity.amount,
+                        type = TransactionType.valueOf(entity.type),
+                        date = Instant.fromEpochMilliseconds(entity.dateEpochMillis),
+                        category = TransactionCategory.fromName(entity.category)
+                    )
+                }
             }
         }
     }
 
     override fun getTransactionsByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<List<Transaction>> {
-        return dao.getTransactionsByDateRange(startEpochMillis, endEpochMillis).map { entities ->
-            entities.map { entity ->
-                Transaction(
-                    id = entity.id,
-                    description = entity.description,
-                    amount = entity.amount,
-                    type = TransactionType.valueOf(entity.type),
-                    date = Instant.fromEpochMilliseconds(entity.dateEpochMillis),
-                    category = TransactionCategory.fromName(entity.category)
-                )
+        return userFlow.flatMapLatest { userId ->
+            dao.getTransactionsByDateRange(startEpochMillis, endEpochMillis, userId).map { entities ->
+                entities.map { entity ->
+                    Transaction(
+                        id = entity.id,
+                        description = entity.description,
+                        amount = entity.amount,
+                        type = TransactionType.valueOf(entity.type),
+                        date = Instant.fromEpochMilliseconds(entity.dateEpochMillis),
+                        category = TransactionCategory.fromName(entity.category)
+                    )
+                }
             }
         }
     }
 
     override fun getExpenseTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Long> {
-        return dao.getExpenseTotalByDateRange(startEpochMillis, endEpochMillis)
+        return userFlow.flatMapLatest { userId ->
+            dao.getExpenseTotalByDateRange(startEpochMillis, endEpochMillis, userId)
+        }
     }
 
     override fun getIncomeTotalByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Long> {
-        return dao.getIncomeTotalByDateRange(startEpochMillis, endEpochMillis)
+        return userFlow.flatMapLatest { userId ->
+            dao.getIncomeTotalByDateRange(startEpochMillis, endEpochMillis, userId)
+        }
     }
 
     override fun getCategorySpendingByDateRange(startEpochMillis: Long, endEpochMillis: Long): Flow<Map<TransactionCategory, Long>> {
-        return dao.getCategorySpendingByDateRange(startEpochMillis, endEpochMillis).map { list ->
-            list.associate { entity ->
-                TransactionCategory.fromName(entity.category) to entity.totalSpent
+        return userFlow.flatMapLatest { userId ->
+            dao.getCategorySpendingByDateRange(startEpochMillis, endEpochMillis, userId).map { list ->
+                list.associate { entity ->
+                    TransactionCategory.fromName(entity.category) to entity.totalSpent
+                }
             }
         }
     }
@@ -68,7 +94,8 @@ class RoomTransactionRepository(
                 amount = transaction.amount,
                 type = transaction.type.name,
                 dateEpochMillis = transaction.date.toEpochMilliseconds(),
-                category = transaction.category.name
+                category = transaction.category.name,
+                userId = activeUserId()
             )
         )
     }
@@ -81,17 +108,18 @@ class RoomTransactionRepository(
                 amount = transaction.amount,
                 type = transaction.type.name,
                 dateEpochMillis = transaction.date.toEpochMilliseconds(),
-                category = transaction.category.name
+                category = transaction.category.name,
+                userId = activeUserId()
             )
         )
     }
 
     override suspend fun deleteTransaction(id: String) {
-        dao.deleteTransactionById(id)
+        dao.deleteTransactionById(id, activeUserId())
     }
 
     override suspend fun getTransactionById(id: String): Transaction? {
-        val entity = dao.getTransactionById(id) ?: return null
+        val entity = dao.getTransactionById(id, activeUserId()) ?: return null
         return Transaction(
             id = entity.id,
             description = entity.description,

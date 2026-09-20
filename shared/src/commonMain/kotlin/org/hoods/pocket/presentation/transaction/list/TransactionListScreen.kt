@@ -5,12 +5,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
+
 @Composable
 fun TransactionListScreen(
     viewModel: TransactionListViewModel,
     onAddTransactionClick: () -> Unit,
     onTransactionClick: (String) -> Unit,
-    onNavigateToBudgets: () -> Unit = {},
+    layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -22,7 +25,7 @@ fun TransactionListScreen(
         onPreviousMonthClick = viewModel::onPreviousMonth,
         onNextMonthClick = viewModel::onNextMonth,
         onCurrentMonthClick = viewModel::onCurrentMonth,
-        onNavigateToBudgets = onNavigateToBudgets,
+        layoutMode = layoutMode,
         modifier = modifier
     )
 }

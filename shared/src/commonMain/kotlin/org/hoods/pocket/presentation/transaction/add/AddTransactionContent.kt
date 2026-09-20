@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -50,6 +49,8 @@ import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.presentation.theme.PocketColors
 import org.hoods.pocket.presentation.transaction.CategorySelector
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,16 +66,17 @@ fun AddTransactionContent(
     onOpenDatePicker: () -> Unit = {},
     onDismissDatePicker: () -> Unit = {},
     onDateSelected: (Instant) -> Unit = {},
+    layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(
+    val isExpanded = layoutMode.isExpanded
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(PocketColors.Surface)
     ) {
-        val isDesktop = maxWidth >= 720.dp
-
-        if (isDesktop) {
+        if (isExpanded) {
             // ==========================================
             // Desktop Layout (Centered Card Container)
             // ==========================================
@@ -112,7 +114,8 @@ fun AddTransactionContent(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .clickable { onDismiss() },
+                                        .clickable { onDismiss() }
+                                        .testTag("back_button"),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -340,7 +343,7 @@ fun AddTransactionContent(
                             selectedType = uiState.selectedType,
                             selectedCategory = uiState.selectedCategory,
                             onCategorySelected = onCategorySelected,
-                            isDesktop = true
+                            layoutMode = AppLayoutMode.Expanded
                         )
 
                         if (uiState.errorMessage != null) {
@@ -433,7 +436,8 @@ fun AddTransactionContent(
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .background(PocketColors.SurfaceContainer)
-                                .clickable { onDismiss() },
+                                .clickable { onDismiss() }
+                                .testTag("back_button"),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -637,7 +641,7 @@ fun AddTransactionContent(
                             selectedType = uiState.selectedType,
                             selectedCategory = uiState.selectedCategory,
                             onCategorySelected = onCategorySelected,
-                            isDesktop = false
+                            layoutMode = AppLayoutMode.Compact
                         )
                     }
                 }

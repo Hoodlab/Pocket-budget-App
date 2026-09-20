@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -49,6 +48,8 @@ import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.util.MoneyParser
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
 import org.hoods.pocket.presentation.theme.PocketColors
 import org.hoods.pocket.presentation.transaction.icon
 
@@ -71,20 +72,21 @@ fun SetBudgetContent(
     onDismissDelete: () -> Unit = {},
     onConfirmDelete: () -> Unit = {},
     onDismiss: (() -> Unit)?,
+    layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier
 ) {
     val expenseCategories = remember {
         TransactionCategory.entries.filter { it.applicableType == TransactionType.EXPENSE }
     }
 
-    BoxWithConstraints(
+    val isExpanded = layoutMode.isExpanded
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(PocketColors.Surface)
     ) {
-        val isDesktop = maxWidth >= 720.dp
-
-        if (isDesktop) {
+        if (isExpanded) {
             // ==========================================
             // Desktop Layout (Centered Card Container)
             // ==========================================

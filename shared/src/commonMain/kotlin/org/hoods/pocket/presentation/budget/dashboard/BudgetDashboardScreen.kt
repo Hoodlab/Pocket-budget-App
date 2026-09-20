@@ -5,11 +5,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
+
 @Composable
 fun BudgetDashboardScreen(
     viewModel: BudgetDashboardViewModel,
     onSetBudgetClick: () -> Unit,
-    onNavigateToTransactions: () -> Unit,
+    layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -17,10 +20,10 @@ fun BudgetDashboardScreen(
     BudgetDashboardContent(
         uiState = uiState,
         onSetBudgetClick = onSetBudgetClick,
-        onNavigateToTransactions = onNavigateToTransactions,
         onPreviousMonthClick = viewModel::onPreviousMonthClick,
         onNextMonthClick = viewModel::onNextMonthClick,
         onCurrentMonthClick = viewModel::onCurrentMonthClick,
+        layoutMode = layoutMode,
         modifier = modifier
     )
 }

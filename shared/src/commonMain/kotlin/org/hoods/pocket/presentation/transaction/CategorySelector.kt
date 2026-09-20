@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
+import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
 import org.hoods.pocket.presentation.theme.PocketColors
 
 val TransactionCategory.icon: String
@@ -51,10 +53,10 @@ fun CategorySelector(
     selectedCategory: TransactionCategory,
     onCategorySelected: (TransactionCategory) -> Unit,
     modifier: Modifier = Modifier,
-    isDesktop: Boolean = false
+    layoutMode: AppLayoutMode = AppLayoutMode.current()
 ) {
     val categories = TransactionCategory.categoriesFor(selectedType)
-    val columns = if (isDesktop) 4 else 3
+    val columns = if (layoutMode.isExpanded) 4 else 3
     val rows = categories.chunked(columns)
 
     Column(
