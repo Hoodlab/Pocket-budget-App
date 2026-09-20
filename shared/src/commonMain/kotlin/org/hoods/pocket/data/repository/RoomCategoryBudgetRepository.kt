@@ -23,12 +23,15 @@ import org.hoods.pocket.data.sync.DeviceIdProvider
 import org.hoods.pocket.data.sync.OutboxMutationBuilder
 import org.hoods.pocket.data.sync.SyncJson
 
+import org.hoods.pocket.domain.service.SyncCoordinator
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoomCategoryBudgetRepository(
     private val dao: CategoryBudgetDao,
     private val authRepository: AuthRepository? = null,
     private val syncOutboxDao: SyncOutboxDao? = null,
     private val deviceIdProvider: DeviceIdProvider? = null,
+    private val syncCoordinator: SyncCoordinator? = null,
     private val activeUserId: () -> String? = { authRepository?.currentUser()?.id },
     private val activeUserIdFlow: Flow<String?>? = null
 ) : CategoryBudgetRepository {
@@ -84,6 +87,9 @@ class RoomCategoryBudgetRepository(
         } else null
 
         dao.insertOrUpdateWithOutbox(entity, outbox)
+        if (outbox != null) {
+            syncCoordinator?.requestSync()
+        }
     }
 
     override suspend fun setCategoryBudgets(budgets: List<CategoryBudget>) {
@@ -120,6 +126,9 @@ class RoomCategoryBudgetRepository(
         }
 
         dao.insertOrUpdateAllWithOutbox(entities, outboxes)
+        if (outboxes.isNotEmpty()) {
+            syncCoordinator?.requestSync()
+        }
     }
 
     override suspend fun removeCategoryBudget(yearMonth: YearMonth, category: TransactionCategory) {
@@ -158,6 +167,9 @@ class RoomCategoryBudgetRepository(
                 updatedAt = now,
                 outbox = outbox
             )
+            if (outbox != null) {
+                syncCoordinator?.requestSync()
+            }
         } else {
             dao.deleteWithOutbox(
                 year = yearMonth.year,
@@ -203,6 +215,9 @@ class RoomCategoryBudgetRepository(
                 updatedAt = now,
                 outboxes = outboxes
             )
+            if (outboxes.isNotEmpty()) {
+                syncCoordinator?.requestSync()
+            }
         } else {
             dao.deleteForMonthWithOutbox(
                 year = yearMonth.year,

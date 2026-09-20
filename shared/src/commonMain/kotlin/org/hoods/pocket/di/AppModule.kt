@@ -65,7 +65,8 @@ val repositoryModule = module {
             dao = get(),
             authRepository = get(),
             syncOutboxDao = get(),
-            deviceIdProvider = get()
+            deviceIdProvider = get(),
+            syncCoordinator = get()
         )
     }
     single<BudgetRepository> {
@@ -73,7 +74,8 @@ val repositoryModule = module {
             dao = get(),
             authRepository = get(),
             syncOutboxDao = get(),
-            deviceIdProvider = get()
+            deviceIdProvider = get(),
+            syncCoordinator = get()
         )
     }
     single<CategoryBudgetRepository> {
@@ -81,14 +83,16 @@ val repositoryModule = module {
             dao = get(),
             authRepository = get(),
             syncOutboxDao = get(),
-            deviceIdProvider = get()
+            deviceIdProvider = get(),
+            syncCoordinator = get()
         )
     }
     single<DataOwnershipRepository> {
         RoomDataOwnershipRepository(
             dao = get(),
             syncOutboxDao = get(),
-            deviceIdProvider = get()
+            deviceIdProvider = get(),
+            syncCoordinator = get()
         )
     }
     single { SupabaseAuthRepository(config = get()) }
@@ -108,6 +112,14 @@ val syncModule = module {
             budgetDao = get(),
             categoryBudgetDao = get(),
             remoteDataSource = get()
+        )
+    }
+    single<org.hoods.pocket.domain.service.SyncCoordinator>(createdAtStart = true) {
+        org.hoods.pocket.data.sync.PocketSyncCoordinator(
+            syncEngine = get(),
+            authRepository = get(),
+            syncOutboxDao = get(),
+            config = get()
         )
     }
 }

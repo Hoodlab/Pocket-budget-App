@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
 import org.hoods.pocket.data.local.entity.SyncOutboxEntity
 
 @Dao
@@ -32,4 +33,7 @@ interface SyncOutboxDao {
 
     @Query("SELECT COUNT(*) FROM sync_outbox WHERE userId = :userId AND status = 'PENDING'")
     suspend fun getPendingMutationCount(userId: String): Int
+
+    @Query("SELECT COUNT(*) FROM sync_outbox WHERE userId = :userId AND status = 'PENDING'")
+    fun observePendingMutationCount(userId: String): Flow<Int>
 }

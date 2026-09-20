@@ -349,4 +349,105 @@ class SyncRepositoryTest {
         assertEquals(3, pendingMutations.size)
         assertTrue(pendingMutations.all { it.operation == "UPSERT" && it.status == "PENDING" && it.userId == "user-signed-in" })
     }
+
+    @Test
+    fun claimedTransaction_operations_invokeSyncCoordinatorRequestSync() = runTest {
+        val fakeCoordinator = FakeSyncCoordinator()
+        val repo = RoomTransactionRepository(
+            dao = database.transactionDao(),
+            syncOutboxDao = database.syncOutboxDao(),
+            deviceIdProvider = deviceIdProvider,
+            syncCoordinator = fakeCoordinator,
+            activeUserId = { "user-coord-1" }
+        )
+
+        val tx = Transaction(
+            id = "tx-coord-1",
+            description = "Groceries",
+            amount = 1200L,
+            type = TransactionType.EXPENSE,
+            date = Instant.fromEpochMilliseconds(2000L),
+            category = TransactionCategory.GROCERIES
+        )
+
+        repo.insertTransaction(tx)
+        assertEquals(1, fakeCoordinator.requestSyncCount)
+
+        repo.updateTransaction(tx.copy(amount = 1500L))
+        assertEquals(2, fakeCoordinator.requestSyncCount)
+
+        repo.deleteTransaction("tx-coord-1")
+        assertEquals(3, fakeCoordinator.requestSyncCount)
+    }
+
+    @Test
+    fun unclaimedTransaction_operations_doNotInvokeSyncCoordinator() = runTest {
+        val fakeCoordinator = FakeSyncCoordinator()
+        val repo = RoomTransactionRepository(
+            dao = database.transactionDao(),
+            syncOutboxDao = database.syncOutboxDao(),
+            deviceIdProvider = deviceIdProvider,
+            syncCoordinator = fakeCoordinator,
+            activeUserId = { null }
+        )
+
+        val tx = Transaction(
+            id = "tx-unclaimed-coord",
+            description = "Cash",
+            amount = 500L,
+            type = TransactionType.EXPENSE,
+            date = Instant.fromEpochMilliseconds(2000L),
+            category = TransactionCategory.OTHER
+        )
+
+        repo.insertTransaction(tx)
+        assertEquals(0, fakeCoordinator.requestSyncCount)
+
+        repo.updateTransaction(tx.copy(amount = 600L))
+        assertEquals(0, fakeCoordinator.requestSyncCount)
+
+        repo.deleteTransaction("tx-unclaimed-coord")
+        assertEquals(0, fakeCoordinator.requestSyncCount)
+    }
+
+    @Test
+    fun claimLocalDataAtomically_invokesSyncCoordinatorRequestSync() = runTest {
+        val fakeCoordinator = FakeSyncCoordinator()
+        val ownershipRepo = RoomDataOwnershipRepository(
+            dao = database.dataOwnershipDao(),
+            syncOutboxDao = database.syncOutboxDao(),
+            deviceIdProvider = deviceIdProvider,
+            syncCoordinator = fakeCoordinator
+        )
+
+        // Seed unassigned transaction
+        database.transactionDao().insertTransaction(
+            org.hoods.pocket.data.local.entity.TransactionEntity(
+                id = "tx-claim-coord",
+                description = "Unclaimed",
+                amount = 1000L,
+                type = "EXPENSE",
+                dateEpochMillis = 2000L,
+                category = "GROCERIES",
+                userId = null
+            )
+        )
+
+        val result = ownershipRepo.claimLocalDataAtomically("user-coord-2")
+        assertTrue(result.isSuccess)
+        assertEquals(1, fakeCoordinator.requestSyncCount)
+    }
+}
+
+private class FakeSyncCoordinator : org.hoods.pocket.domain.service.SyncCoordinator {
+    var requestSyncCount = 0
+    private val _syncState = kotlinx.coroutines.flow.MutableStateFlow<org.hoods.pocket.domain.model.AppSyncState>(
+        org.hoods.pocket.domain.model.AppSyncState.Idle
+    )
+    override val syncState: kotlinx.coroutines.flow.StateFlow<org.hoods.pocket.domain.model.AppSyncState> = _syncState
+
+    override fun requestSync(): kotlinx.coroutines.Job {
+        requestSyncCount++
+        return kotlinx.coroutines.Job().apply { complete() }
+    }
 }

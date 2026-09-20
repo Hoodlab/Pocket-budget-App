@@ -21,12 +21,15 @@ import org.hoods.pocket.data.sync.DeviceIdProvider
 import org.hoods.pocket.data.sync.OutboxMutationBuilder
 import org.hoods.pocket.data.sync.SyncJson
 
+import org.hoods.pocket.domain.service.SyncCoordinator
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoomTransactionRepository(
     private val dao: TransactionDao,
     private val authRepository: AuthRepository? = null,
     private val syncOutboxDao: SyncOutboxDao? = null,
     private val deviceIdProvider: DeviceIdProvider? = null,
+    private val syncCoordinator: SyncCoordinator? = null,
     private val activeUserId: () -> String? = { authRepository?.currentUser()?.id },
     private val activeUserIdFlow: Flow<String?>? = null
 ) : TransactionRepository {
@@ -121,6 +124,9 @@ class RoomTransactionRepository(
         } else null
 
         dao.insertWithOutbox(entity, outbox)
+        if (outbox != null) {
+            syncCoordinator?.requestSync()
+        }
     }
 
     override suspend fun updateTransaction(transaction: Transaction) {
@@ -151,6 +157,9 @@ class RoomTransactionRepository(
         } else null
 
         dao.updateWithOutbox(entity, outbox)
+        if (outbox != null) {
+            syncCoordinator?.requestSync()
+        }
     }
 
     override suspend fun deleteTransaction(id: String) {
@@ -187,6 +196,9 @@ class RoomTransactionRepository(
                 updatedAt = now,
                 outbox = outbox
             )
+            if (outbox != null) {
+                syncCoordinator?.requestSync()
+            }
         } else {
             dao.deleteWithOutbox(
                 id = id,

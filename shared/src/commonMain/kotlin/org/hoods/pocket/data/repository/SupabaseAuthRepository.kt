@@ -123,6 +123,7 @@ class SupabaseAuthRepository(
 
     override suspend fun signOut(): Result<Unit> {
         return runCatching {
+            client?.auth?.clearSession()
             client?.auth?.signOut()
             _authState.value = AuthState.Unauthenticated
         }

@@ -47,12 +47,27 @@ Room remains the single local source of truth with 0ms UI latency. When a signed
    - `SyncProtocolModels.kt`: DTOs and `RemoteSyncDataSource` interface.
    - `PocketSyncEngine`: handles push, pull, conflict resolution, retry tracking, and durable cursor advancement.
    - `SupabaseRemoteSyncDataSource`: client implementation calling Supabase Postgrest RPCs.
-   - `AppModule.kt`: registered `syncModule` providing `RemoteSyncDataSource` and `SyncEngine` in Koin.
+   - `AppModule.kt`: registered `syncModule` providing `RemoteSyncDataSource`, `SyncEngine`, and `SyncCoordinator` in Koin.
    - Tested in `PocketSyncEngineTest.kt` (9/9 unit tests passing).
+9. **Application-Level Sync Coordination**:
+   - `AppSyncState.kt`: Pure domain state model (`Idle`, `Pending`, `Syncing`, `Success`, `Error`).
+   - `SyncCoordinator.kt`: Pure domain service interface (`syncState: StateFlow<AppSyncState>`, `requestSync(): Job`).
+   - `PocketSyncCoordinator.kt`: Coordinates sync lifecycle:
+     - Only starts sync for authenticated users with valid Supabase configuration (`config.isConfigured`).
+     - Triggers initial sync attempt upon user authentication.
+     - Reactively observes `syncOutboxDao.observePendingMutationCount(userId)` and processes pending mutations.
+     - Prevents overlapping sync runs for the same user via `Mutex`.
+     - Returns immediately to `Idle` upon user sign-out or when unauthenticated; preserves local data and pending mutations upon failure with truthful `AppSyncState.Error`.
+   - **Repository Outbox Triggers**:
+     - `RoomTransactionRepository`, `RoomBudgetRepository`, `RoomCategoryBudgetRepository`, and `RoomDataOwnershipRepository` invoke `syncCoordinator?.requestSync()` whenever claimed mutations are written to `sync_outbox`.
+     - Unclaimed operations never trigger sync requests.
+     - Screen ViewModels depend only on domain use cases and never call `PocketSyncEngine` or `SyncCoordinator` directly.
+   - Tested in `PocketSyncCoordinatorTest.kt` (8/8 unit tests passing), `SyncRepositoryTest.kt` (3 coordinator trigger tests passing), and `LocalSupabaseRuntimeSyncIntegrationTest.kt` (end-to-end runtime integration test passing against local Supabase).
 
 ### Explicit Exclusions Honored
 - Background scheduling via Android WorkManager, iOS background tasks, or desktop background services is strictly omitted.
 - Realtime subscriptions and live multi-device WebSocket listeners are omitted.
+- No screen ViewModel calls `PocketSyncEngine` or `SyncCoordinator` directly.
 - No hosted Supabase changes executed; hosted project `hyetpnyruynichpsxyvz` remains strictly read-only.
 - Money representation strictly preserved as `Long` integer cents everywhere.
 
@@ -83,6 +98,12 @@ Room remains the single local source of truth with 0ms UI latency. When a signed
    - `PocketSyncEngineTest.kt`: PASS (9/9 tests covering push success, stale removal, rejected failure update, network retry, pull inserts, conflict remote wins, conflict local wins, soft-delete tombstones, unavailable without remote)
 5. **Local Supabase Protocol Tests**:
    - `supabase test db --local`: PASS (44/44 tests across `01_security_and_constraints_test.sql` and `02_sync_protocol_test.sql`)
+6. **Sync Coordinator Unit Tests**:
+   - `PocketSyncCoordinatorTest.kt`: PASS (8/8 tests verifying auth state validation, mutual exclusion, initial sync on sign-in, reactive outbox sync, sign-out transition to idle, retry preservation on error)
+7. **Repository Coordinator Trigger Tests**:
+   - `SyncRepositoryTest.kt`: PASS (10/10 tests, including 3 tests verifying claimed transactions invoke `requestSync()` and unclaimed operations do not)
+8. **Runtime End-to-End Integration Test**:
+   - `LocalSupabaseRuntimeSyncIntegrationTest.kt`: PASS (runtime path: seed unclaimed transaction -> sign up -> claim data -> coordinator syncs record to local Supabase Postgres -> update propagates to remote -> delete soft-deletes in Postgres -> sign out resets coordinator to Idle)
 
 ---
 

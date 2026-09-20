@@ -11,11 +11,14 @@ import org.hoods.pocket.data.sync.SyncJson
 import org.hoods.pocket.domain.model.UnclaimedDataSummary
 import org.hoods.pocket.domain.repository.DataOwnershipRepository
 
+import org.hoods.pocket.domain.service.SyncCoordinator
+
 @OptIn(ExperimentalUuidApi::class)
 class RoomDataOwnershipRepository(
     private val dao: DataOwnershipDao,
     private val syncOutboxDao: SyncOutboxDao? = null,
-    private val deviceIdProvider: DeviceIdProvider? = null
+    private val deviceIdProvider: DeviceIdProvider? = null,
+    private val syncCoordinator: SyncCoordinator? = null
 ) : DataOwnershipRepository {
 
     override suspend fun getUnclaimedDataSummary(): UnclaimedDataSummary {
@@ -100,6 +103,9 @@ class RoomDataOwnershipRepository(
                 }
 
                 dao.claimAllUnassignedWithMutations(userId, now, mutations)
+                if (mutations.isNotEmpty()) {
+                    syncCoordinator?.requestSync()
+                }
             } else {
                 dao.claimAllUnassigned(userId)
             }

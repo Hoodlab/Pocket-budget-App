@@ -19,12 +19,15 @@ import org.hoods.pocket.data.sync.DeviceIdProvider
 import org.hoods.pocket.data.sync.OutboxMutationBuilder
 import org.hoods.pocket.data.sync.SyncJson
 
+import org.hoods.pocket.domain.service.SyncCoordinator
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoomBudgetRepository(
     private val dao: BudgetDao,
     private val authRepository: AuthRepository? = null,
     private val syncOutboxDao: SyncOutboxDao? = null,
     private val deviceIdProvider: DeviceIdProvider? = null,
+    private val syncCoordinator: SyncCoordinator? = null,
     private val activeUserId: () -> String? = { authRepository?.currentUser()?.id },
     private val activeUserIdFlow: Flow<String?>? = null
 ) : BudgetRepository {
@@ -73,6 +76,9 @@ class RoomBudgetRepository(
         } else null
 
         dao.insertOrUpdateWithOutbox(entity, outbox)
+        if (outbox != null) {
+            syncCoordinator?.requestSync()
+        }
     }
 
     override suspend fun deleteMonthlyBudget(yearMonth: YearMonth) {
@@ -109,6 +115,9 @@ class RoomBudgetRepository(
                 updatedAt = now,
                 outbox = outbox
             )
+            if (outbox != null) {
+                syncCoordinator?.requestSync()
+            }
         } else {
             dao.deleteWithOutbox(
                 year = yearMonth.year,
