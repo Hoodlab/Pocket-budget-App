@@ -14,12 +14,19 @@ import org.hoods.pocket.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.hoods.pocket.domain.model.AuthState
 import org.hoods.pocket.domain.repository.AuthRepository
+import kotlin.time.Clock
 import kotlin.time.Instant
+import org.hoods.pocket.data.local.dao.SyncOutboxDao
+import org.hoods.pocket.data.sync.DeviceIdProvider
+import org.hoods.pocket.data.sync.OutboxMutationBuilder
+import org.hoods.pocket.data.sync.SyncJson
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoomTransactionRepository(
     private val dao: TransactionDao,
     private val authRepository: AuthRepository? = null,
+    private val syncOutboxDao: SyncOutboxDao? = null,
+    private val deviceIdProvider: DeviceIdProvider? = null,
     private val activeUserId: () -> String? = { authRepository?.currentUser()?.id },
     private val activeUserIdFlow: Flow<String?>? = null
 ) : TransactionRepository {
@@ -87,35 +94,109 @@ class RoomTransactionRepository(
     }
 
     override suspend fun insertTransaction(transaction: Transaction) {
-        dao.insertTransaction(
-            TransactionEntity(
-                id = transaction.id,
-                description = transaction.description,
-                amount = transaction.amount,
-                type = transaction.type.name,
-                dateEpochMillis = transaction.date.toEpochMilliseconds(),
-                category = transaction.category.name,
-                userId = activeUserId()
-            )
+        val userId = activeUserId()
+        val now = Clock.System.now().toEpochMilliseconds()
+        val entity = TransactionEntity(
+            id = transaction.id,
+            description = transaction.description,
+            amount = transaction.amount,
+            type = transaction.type.name,
+            dateEpochMillis = transaction.date.toEpochMilliseconds(),
+            category = transaction.category.name,
+            userId = userId,
+            updatedAtEpochMillis = now,
+            deletedAtEpochMillis = null
         )
+        val outbox = if (userId != null && deviceIdProvider != null) {
+            OutboxMutationBuilder.buildCoalescedMutation(
+                syncOutboxDao = syncOutboxDao,
+                userId = userId,
+                deviceId = deviceIdProvider.getDeviceId(),
+                entityType = "TRANSACTION",
+                entityId = transaction.id,
+                operation = "UPSERT",
+                payloadJson = SyncJson.serializeTransaction(entity),
+                now = now
+            )
+        } else null
+
+        dao.insertWithOutbox(entity, outbox)
     }
 
     override suspend fun updateTransaction(transaction: Transaction) {
-        dao.updateTransaction(
-            TransactionEntity(
-                id = transaction.id,
-                description = transaction.description,
-                amount = transaction.amount,
-                type = transaction.type.name,
-                dateEpochMillis = transaction.date.toEpochMilliseconds(),
-                category = transaction.category.name,
-                userId = activeUserId()
-            )
+        val userId = activeUserId()
+        val now = Clock.System.now().toEpochMilliseconds()
+        val entity = TransactionEntity(
+            id = transaction.id,
+            description = transaction.description,
+            amount = transaction.amount,
+            type = transaction.type.name,
+            dateEpochMillis = transaction.date.toEpochMilliseconds(),
+            category = transaction.category.name,
+            userId = userId,
+            updatedAtEpochMillis = now,
+            deletedAtEpochMillis = null
         )
+        val outbox = if (userId != null && deviceIdProvider != null) {
+            OutboxMutationBuilder.buildCoalescedMutation(
+                syncOutboxDao = syncOutboxDao,
+                userId = userId,
+                deviceId = deviceIdProvider.getDeviceId(),
+                entityType = "TRANSACTION",
+                entityId = transaction.id,
+                operation = "UPSERT",
+                payloadJson = SyncJson.serializeTransaction(entity),
+                now = now
+            )
+        } else null
+
+        dao.updateWithOutbox(entity, outbox)
     }
 
     override suspend fun deleteTransaction(id: String) {
-        dao.deleteTransactionById(id, activeUserId())
+        val userId = activeUserId()
+        val now = Clock.System.now().toEpochMilliseconds()
+        if (userId != null && deviceIdProvider != null) {
+            val existing = dao.getTransactionById(id, userId)
+            val tombstone = existing?.copy(deletedAtEpochMillis = now, updatedAtEpochMillis = now)
+                ?: TransactionEntity(
+                    id = id,
+                    description = "",
+                    amount = 0L,
+                    type = "EXPENSE",
+                    dateEpochMillis = now,
+                    userId = userId,
+                    updatedAtEpochMillis = now,
+                    deletedAtEpochMillis = now
+                )
+            val outbox = OutboxMutationBuilder.buildCoalescedMutation(
+                syncOutboxDao = syncOutboxDao,
+                userId = userId,
+                deviceId = deviceIdProvider.getDeviceId(),
+                entityType = "TRANSACTION",
+                entityId = id,
+                operation = "DELETE",
+                payloadJson = SyncJson.serializeTransaction(tombstone),
+                now = now
+            )
+            dao.deleteWithOutbox(
+                id = id,
+                activeUserId = userId,
+                isSoftDelete = true,
+                deletedAt = now,
+                updatedAt = now,
+                outbox = outbox
+            )
+        } else {
+            dao.deleteWithOutbox(
+                id = id,
+                activeUserId = userId,
+                isSoftDelete = false,
+                deletedAt = now,
+                updatedAt = now,
+                outbox = null
+            )
+        }
     }
 
     override suspend fun getTransactionById(id: String): Transaction? {

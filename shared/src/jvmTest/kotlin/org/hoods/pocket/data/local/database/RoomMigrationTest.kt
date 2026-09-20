@@ -72,7 +72,7 @@ class RoomMigrationTest {
             // 2. Open with Room AppDatabase version 3 with MIGRATION_2_3 applied
             val database = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
 
             val repository = RoomTransactionRepository(database.transactionDao())
@@ -162,7 +162,7 @@ class RoomMigrationTest {
             // 2. Open with Room AppDatabase version 4 with MIGRATION_2_3 and MIGRATION_3_4
             val database = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
 
             // 3. Verify v3 data survived
@@ -277,7 +277,7 @@ class RoomMigrationTest {
             // 2. Open with Room AppDatabase version 5 with MIGRATION_4_5 applied
             val database = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
                 .setDriver(BundledSQLiteDriver())
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
 
             // 3. Verify v4 data survived and userId is null (unassigned)
@@ -299,6 +299,138 @@ class RoomMigrationTest {
             assertEquals(0, ownershipDao.getUnclaimedTransactionCount())
             assertEquals(0, ownershipDao.getUnclaimedMonthlyBudgetCount())
             assertEquals(0, ownershipDao.getUnclaimedCategoryBudgetCount())
+
+            database.close()
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
+    fun migration_5_to_6_addsSyncColumnsAndOutboxTables() = runTest {
+        val tempFile = File.createTempFile("migration_test_v5_v6", ".db")
+        tempFile.deleteOnExit()
+
+        try {
+            // 1. Create a legacy v5 SQLite database
+            val driver = BundledSQLiteDriver()
+            val connection = driver.open(tempFile.absolutePath)
+
+            // Version 5 transactions table (with userId, NO sync columns)
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS transactions (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    description TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    type TEXT NOT NULL,
+                    dateEpochMillis INTEGER NOT NULL,
+                    category TEXT NOT NULL,
+                    userId TEXT DEFAULT NULL
+                )
+                """.trimIndent()
+            )
+
+            // Version 5 monthly_budgets table (with userId, NO sync columns)
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS monthly_budgets (
+                    year INTEGER NOT NULL,
+                    month INTEGER NOT NULL,
+                    limitAmount INTEGER NOT NULL,
+                    userId TEXT DEFAULT NULL,
+                    PRIMARY KEY(year, month)
+                )
+                """.trimIndent()
+            )
+
+            // Version 5 category_budgets table (with userId, NO sync columns)
+            connection.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS category_budgets (
+                    year INTEGER NOT NULL,
+                    month INTEGER NOT NULL,
+                    category TEXT NOT NULL,
+                    limitAmount INTEGER NOT NULL,
+                    userId TEXT DEFAULT NULL,
+                    PRIMARY KEY(year, month, category)
+                )
+                """.trimIndent()
+            )
+
+            connection.execSQL("PRAGMA user_version = 5")
+
+            // Insert sample transaction and budgets
+            connection.execSQL(
+                """
+                INSERT INTO transactions (id, description, amount, type, dateEpochMillis, category, userId)
+                VALUES ('tx-v5-1', 'Target Groceries', 8500, 'EXPENSE', 1717171717000, 'GROCERIES', 'user-123')
+                """.trimIndent()
+            )
+            connection.execSQL(
+                """
+                INSERT INTO monthly_budgets (year, month, limitAmount, userId)
+                VALUES (2026, 9, 400000, 'user-123')
+                """.trimIndent()
+            )
+            connection.execSQL(
+                """
+                INSERT INTO category_budgets (year, month, category, limitAmount, userId)
+                VALUES (2026, 9, 'GROCERIES', 80000, 'user-123')
+                """.trimIndent()
+            )
+
+            connection.close()
+
+            // 2. Open with Room AppDatabase version 6 with MIGRATION_5_6 applied
+            val database = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
+                .setDriver(BundledSQLiteDriver())
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .build()
+
+            // 3. Verify v5 transaction survived and has updatedAtEpochMillis
+            val txEntity = database.transactionDao().getTransactionById("tx-v5-1", "user-123")
+            assertNotNull(txEntity)
+            assertEquals("Target Groceries", txEntity.description)
+            assertEquals(8500L, txEntity.amount)
+            assertEquals(1717171717000L, txEntity.updatedAtEpochMillis)
+            assertEquals(null, txEntity.deletedAtEpochMillis)
+
+            // 4. Verify sync_outbox and sync_metadata tables are operational
+            val outboxDao = database.syncOutboxDao()
+            assertEquals(0, outboxDao.getPendingMutationCount("user-123"))
+
+            val outboxEntity = org.hoods.pocket.data.local.entity.SyncOutboxEntity(
+                mutationId = "mut-test-1",
+                userId = "user-123",
+                deviceId = "device-abc",
+                entityType = "TRANSACTION",
+                entityId = "tx-v5-1",
+                operation = "UPSERT",
+                payloadJson = "{}",
+                updatedAtEpochMillis = 1717171717000L,
+                status = "PENDING",
+                createdAtEpochMillis = 1717171717000L
+            )
+            outboxDao.insertOrUpdateMutation(outboxEntity)
+            assertEquals(1, outboxDao.getPendingMutationCount("user-123"))
+
+            val metadataDao = database.syncMetadataDao()
+            val initialMeta = metadataDao.getMetadata("user-123")
+            assertEquals(null, initialMeta)
+
+            metadataDao.upsertMetadata(
+                org.hoods.pocket.data.local.entity.SyncMetadataEntity(
+                    userId = "user-123",
+                    lastSyncCursor = "2026-09-20T10:00:00Z",
+                    lastSyncAtEpochMillis = 1717171800000L,
+                    lastSyncStatus = "SUCCESS"
+                )
+            )
+            val updatedMeta = metadataDao.getMetadata("user-123")
+            assertNotNull(updatedMeta)
+            assertEquals("SUCCESS", updatedMeta.lastSyncStatus)
+            assertEquals("2026-09-20T10:00:00Z", updatedMeta.lastSyncCursor)
 
             database.close()
         } finally {

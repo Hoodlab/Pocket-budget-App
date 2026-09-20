@@ -8,5 +8,7 @@ data class CategoryBudgetEntity(
     val month: Int,
     val category: String,
     val limitAmount: Long,
-    val userId: String? = null
+    val userId: String? = null,
+    val updatedAtEpochMillis: Long = 0L,
+    val deletedAtEpochMillis: Long? = null
 )

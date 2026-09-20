@@ -12,5 +12,7 @@ data class TransactionEntity(
     val type: String,
     val dateEpochMillis: Long,
     val category: String = "UNCATEGORIZED",
-    val userId: String? = null
+    val userId: String? = null,
+    val updatedAtEpochMillis: Long = dateEpochMillis,
+    val deletedAtEpochMillis: Long? = null
 )

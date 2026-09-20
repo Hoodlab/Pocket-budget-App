@@ -55,14 +55,61 @@ val databaseModule = module {
     single { get<AppDatabase>().budgetDao() }
     single { get<AppDatabase>().categoryBudgetDao() }
     single { get<AppDatabase>().dataOwnershipDao() }
+    single { get<AppDatabase>().syncOutboxDao() }
+    single { get<AppDatabase>().syncMetadataDao() }
 }
 
 val repositoryModule = module {
-    single<TransactionRepository> { RoomTransactionRepository(dao = get(), authRepository = get()) }
-    single<BudgetRepository> { RoomBudgetRepository(dao = get(), authRepository = get()) }
-    single<CategoryBudgetRepository> { RoomCategoryBudgetRepository(dao = get(), authRepository = get()) }
-    single<DataOwnershipRepository> { RoomDataOwnershipRepository(dao = get()) }
-    single<AuthRepository> { SupabaseAuthRepository(config = get()) }
+    single<TransactionRepository> {
+        RoomTransactionRepository(
+            dao = get(),
+            authRepository = get(),
+            syncOutboxDao = get(),
+            deviceIdProvider = get()
+        )
+    }
+    single<BudgetRepository> {
+        RoomBudgetRepository(
+            dao = get(),
+            authRepository = get(),
+            syncOutboxDao = get(),
+            deviceIdProvider = get()
+        )
+    }
+    single<CategoryBudgetRepository> {
+        RoomCategoryBudgetRepository(
+            dao = get(),
+            authRepository = get(),
+            syncOutboxDao = get(),
+            deviceIdProvider = get()
+        )
+    }
+    single<DataOwnershipRepository> {
+        RoomDataOwnershipRepository(
+            dao = get(),
+            syncOutboxDao = get(),
+            deviceIdProvider = get()
+        )
+    }
+    single { SupabaseAuthRepository(config = get()) }
+    single<AuthRepository> { get<SupabaseAuthRepository>() }
+}
+
+val syncModule = module {
+    single<org.hoods.pocket.data.sync.RemoteSyncDataSource?> {
+        val client = get<SupabaseAuthRepository>().client
+        if (client != null) org.hoods.pocket.data.sync.SupabaseRemoteSyncDataSource(client) else null
+    }
+    single<org.hoods.pocket.data.sync.SyncEngine> {
+        org.hoods.pocket.data.sync.PocketSyncEngine(
+            syncOutboxDao = get(),
+            syncMetadataDao = get(),
+            transactionDao = get(),
+            budgetDao = get(),
+            categoryBudgetDao = get(),
+            remoteDataSource = get()
+        )
+    }
 }
 
 val useCaseModule = module {
@@ -163,7 +210,7 @@ val viewModelModule = module {
 
 expect val platformModule: Module
 
-val sharedModules = listOf(databaseModule, repositoryModule, useCaseModule, viewModelModule)
+val sharedModules = listOf(databaseModule, repositoryModule, syncModule, useCaseModule, viewModelModule)
 
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) {
     startKoin {

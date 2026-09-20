@@ -25,7 +25,7 @@ class RoomDataOwnershipTest {
         tempFile = File.createTempFile("data_ownership_test", ".db")
         database = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
             .setDriver(BundledSQLiteDriver())
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .build()
     }
 

@@ -7,5 +7,7 @@ data class MonthlyBudgetEntity(
     val year: Int,
     val month: Int,
     val limitAmount: Long,
-    val userId: String? = null
+    val userId: String? = null,
+    val updatedAtEpochMillis: Long = 0L,
+    val deletedAtEpochMillis: Long? = null
 )

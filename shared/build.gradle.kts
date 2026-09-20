@@ -73,6 +73,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.core)
             implementation(project.dependencies.platform(libs.supabase.bom))
             implementation(libs.supabase.auth)
+            implementation(libs.supabase.postgrest)
             implementation(libs.ktor.client.core)
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.core)
