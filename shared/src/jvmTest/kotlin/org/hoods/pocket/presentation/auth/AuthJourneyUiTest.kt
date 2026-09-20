@@ -18,9 +18,12 @@ import org.hoods.pocket.data.remote.SupabaseEnvironment
 import org.hoods.pocket.data.repository.FakeAuthRepository
 import org.hoods.pocket.data.repository.RoomDataOwnershipRepository
 import org.hoods.pocket.data.repository.RoomTransactionRepository
+import org.hoods.pocket.di.startTestKoin
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
+import org.koin.core.context.stopKoin
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.time.Instant
 
@@ -34,6 +37,11 @@ import org.hoods.pocket.domain.model.CategoryBudget
 
 @OptIn(ExperimentalTestApi::class)
 class AuthJourneyUiTest {
+
+    @AfterTest
+    fun tearDown() {
+        stopKoin()
+    }
 
     @Test
     fun completeAuthJourney_signIn_claimUnassignedData_viewAccount_andSignOut() = runComposeUiTest {
@@ -84,15 +92,17 @@ class AuthJourneyUiTest {
             )
         }
 
+        startTestKoin(
+            transactionRepository = transactionRepo,
+            budgetRepository = budgetRepo,
+            categoryBudgetRepository = categoryBudgetRepo,
+            authRepository = authRepo,
+            dataOwnershipRepository = dataOwnershipRepo,
+            supabaseConfig = SupabaseConfig.local()
+        )
+
         setContent {
-            PocketBudgetRoot(
-                repository = transactionRepo,
-                budgetRepository = budgetRepo,
-                categoryBudgetRepository = categoryBudgetRepo,
-                authRepository = authRepo,
-                dataOwnershipRepository = dataOwnershipRepo,
-                supabaseConfig = SupabaseConfig.local()
-            )
+            PocketBudgetRoot()
         }
         waitForIdle()
 
@@ -197,13 +207,15 @@ class AuthJourneyUiTest {
             )
         }
 
+        startTestKoin(
+            transactionRepository = transactionRepo,
+            authRepository = authRepo,
+            dataOwnershipRepository = dataOwnershipRepo,
+            supabaseConfig = SupabaseConfig.local()
+        )
+
         setContent {
-            PocketBudgetRoot(
-                repository = transactionRepo,
-                authRepository = authRepo,
-                dataOwnershipRepository = dataOwnershipRepo,
-                supabaseConfig = SupabaseConfig.local()
-            )
+            PocketBudgetRoot()
         }
         waitForIdle()
 
@@ -250,13 +262,15 @@ class AuthJourneyUiTest {
 
         val config = SupabaseConfig.local()
 
+        startTestKoin(
+            transactionRepository = transactionRepo,
+            authRepository = authRepo,
+            dataOwnershipRepository = dataOwnershipRepo,
+            supabaseConfig = config
+        )
+
         setContent {
-            PocketBudgetRoot(
-                repository = transactionRepo,
-                authRepository = authRepo,
-                dataOwnershipRepository = dataOwnershipRepo,
-                supabaseConfig = config
-            )
+            PocketBudgetRoot()
         }
         waitForIdle()
 
@@ -289,13 +303,15 @@ class AuthJourneyUiTest {
         val dataOwnershipRepo = RoomDataOwnershipRepository(database.dataOwnershipDao())
         val transactionRepo = RoomTransactionRepository(database.transactionDao(), authRepository = authRepo)
 
+        startTestKoin(
+            transactionRepository = transactionRepo,
+            authRepository = authRepo,
+            dataOwnershipRepository = dataOwnershipRepo,
+            supabaseConfig = SupabaseConfig.local()
+        )
+
         setContent {
-            PocketBudgetRoot(
-                repository = transactionRepo,
-                authRepository = authRepo,
-                dataOwnershipRepository = dataOwnershipRepo,
-                supabaseConfig = SupabaseConfig.local()
-            )
+            PocketBudgetRoot()
         }
         waitForIdle()
 

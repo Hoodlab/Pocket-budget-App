@@ -7,10 +7,11 @@ import androidx.compose.ui.Modifier
 
 import org.hoods.pocket.presentation.layout.AppLayoutMode
 import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun TransactionListScreen(
-    viewModel: TransactionListViewModel,
+    viewModel: TransactionListViewModel = koinViewModel(),
     onAddTransactionClick: () -> Unit,
     onTransactionClick: (String) -> Unit,
     layoutMode: AppLayoutMode = AppLayoutMode.current(),

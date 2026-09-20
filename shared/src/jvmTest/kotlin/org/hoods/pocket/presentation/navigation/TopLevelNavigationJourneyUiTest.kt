@@ -8,14 +8,22 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import org.hoods.pocket.PocketBudgetRoot
 import org.hoods.pocket.data.repository.FakeAuthRepository
+import org.hoods.pocket.di.startTestKoin
 import org.hoods.pocket.domain.model.AuthState
 import org.hoods.pocket.domain.usecase.FakeBudgetRepository
 import org.hoods.pocket.domain.usecase.FakeTransactionRepository
 import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.koin.core.context.stopKoin
+import kotlin.test.AfterTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class TopLevelNavigationJourneyUiTest {
+
+    @AfterTest
+    fun tearDown() {
+        stopKoin()
+    }
 
     @Test
     fun compactLayout_bottomNavigation_persistsAcrossAllTopLevelScreens() = runComposeUiTest {
@@ -23,11 +31,14 @@ class TopLevelNavigationJourneyUiTest {
         val budgetRepository = FakeBudgetRepository()
         val authRepository = FakeAuthRepository(initialState = AuthState.Unauthenticated)
 
+        startTestKoin(
+            transactionRepository = transactionRepository,
+            budgetRepository = budgetRepository,
+            authRepository = authRepository
+        )
+
         setContent {
             PocketBudgetRoot(
-                repository = transactionRepository,
-                budgetRepository = budgetRepository,
-                authRepository = authRepository,
                 layoutMode = AppLayoutMode.Compact
             )
         }
@@ -74,11 +85,14 @@ class TopLevelNavigationJourneyUiTest {
         val budgetRepository = FakeBudgetRepository()
         val authRepository = FakeAuthRepository(initialState = AuthState.Unauthenticated)
 
+        startTestKoin(
+            transactionRepository = transactionRepository,
+            budgetRepository = budgetRepository,
+            authRepository = authRepository
+        )
+
         setContent {
             PocketBudgetRoot(
-                repository = transactionRepository,
-                budgetRepository = budgetRepository,
-                authRepository = authRepository,
                 layoutMode = AppLayoutMode.Expanded
             )
         }
@@ -127,10 +141,13 @@ class TopLevelNavigationJourneyUiTest {
         val transactionRepository = FakeTransactionRepository()
         val budgetRepository = FakeBudgetRepository()
 
+        startTestKoin(
+            transactionRepository = transactionRepository,
+            budgetRepository = budgetRepository
+        )
+
         setContent {
             PocketBudgetRoot(
-                repository = transactionRepository,
-                budgetRepository = budgetRepository,
                 layoutMode = AppLayoutMode.Compact
             )
         }

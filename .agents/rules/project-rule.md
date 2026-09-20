@@ -50,6 +50,16 @@ trigger: always_on
 - `BoxWithConstraints` is allowed only for a component’s local measurement needs, not for deciding the overall screen layout.
 - Responsive UI work must be verified and visually reviewed at compact and expanded viewport sizes when both are supported.
 
+## Dependency injection and application composition
+
+- Dependency construction belongs in Koin modules and platform composition code, not in feature screens, navigation hosts, or stateless content composables.
+- Shared Koin modules provide repositories, use cases, and ViewModels.
+- Platform Koin modules provide platform-only objects such as Room builders, SQLite drivers, Ktor engines, and runtime configuration.
+- Platform entry points start Koin; PocketBudgetRoot starts the UI and must not become a manual dependency construction chain.
+- Stateful screens may obtain their ViewModel through Koin. Stateless content composables must receive plain state and event lambdas only.
+- ViewModels depend on domain use cases only. They must not depend on Koin APIs, Room, Supabase, navigation controllers, or platform APIs.
+- Unit tests should construct ViewModels directly with fakes where practical.
+
 ## Change discipline
 
 - Follow the `test-first` workflow for new observable domain and data behavior.

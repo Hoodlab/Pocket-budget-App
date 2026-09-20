@@ -8,11 +8,12 @@ import androidx.compose.ui.Modifier
 
 import org.hoods.pocket.presentation.layout.AppLayoutMode
 import org.hoods.pocket.presentation.layout.LocalAppLayoutMode
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun EditTransactionScreen(
-    viewModel: EditTransactionViewModel,
     transactionId: String,
+    viewModel: EditTransactionViewModel = koinViewModel(),
     onSaveSuccess: () -> Unit,
     onDeleteSuccess: () -> Unit,
     onDismiss: () -> Unit,

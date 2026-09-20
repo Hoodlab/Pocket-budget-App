@@ -7,10 +7,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.collectLatest
 import org.hoods.pocket.data.remote.SupabaseConfig
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SetupConfigScreen(
-    viewModel: SetupConfigViewModel,
+    viewModel: SetupConfigViewModel = koinViewModel(),
     onConfigChanged: (SupabaseConfig) -> Unit,
     onContinueOffline: () -> Unit,
     onBackClick: () -> Unit,

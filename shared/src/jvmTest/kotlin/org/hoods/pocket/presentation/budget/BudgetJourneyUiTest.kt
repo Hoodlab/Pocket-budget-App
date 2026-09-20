@@ -11,15 +11,23 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import org.hoods.pocket.PocketBudgetRoot
+import org.hoods.pocket.di.startTestKoin
 import org.hoods.pocket.domain.model.TransactionType
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.domain.usecase.FakeBudgetRepository
 import org.hoods.pocket.domain.usecase.FakeCategoryBudgetRepository
 import org.hoods.pocket.domain.usecase.FakeTransactionRepository
+import org.koin.core.context.stopKoin
+import kotlin.test.AfterTest
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class BudgetJourneyUiTest {
+
+    @AfterTest
+    fun tearDown() {
+        stopKoin()
+    }
 
     @Test
     fun completeBudgetJourney_crossScreenSetAndObserveWithTransactions() = runComposeUiTest {
@@ -28,11 +36,13 @@ class BudgetJourneyUiTest {
         val currentMonth = YearMonth.now()
         val prevMonth = currentMonth.previous()
 
+        startTestKoin(
+            transactionRepository = transactionRepository,
+            budgetRepository = budgetRepository
+        )
+
         setContent {
-            PocketBudgetRoot(
-                repository = transactionRepository,
-                budgetRepository = budgetRepository
-            )
+            PocketBudgetRoot()
         }
 
         waitForIdle()
@@ -113,11 +123,13 @@ class BudgetJourneyUiTest {
         val budgetRepository = FakeBudgetRepository()
         val currentMonth = YearMonth.now()
 
+        startTestKoin(
+            transactionRepository = transactionRepository,
+            budgetRepository = budgetRepository
+        )
+
         setContent {
-            PocketBudgetRoot(
-                repository = transactionRepository,
-                budgetRepository = budgetRepository
-            )
+            PocketBudgetRoot()
         }
 
         waitForIdle()
@@ -193,12 +205,14 @@ class BudgetJourneyUiTest {
         val categoryBudgetRepository = FakeCategoryBudgetRepository()
         val currentMonth = YearMonth.now()
 
+        startTestKoin(
+            transactionRepository = transactionRepository,
+            budgetRepository = budgetRepository,
+            categoryBudgetRepository = categoryBudgetRepository
+        )
+
         setContent {
-            PocketBudgetRoot(
-                repository = transactionRepository,
-                budgetRepository = budgetRepository,
-                categoryBudgetRepository = categoryBudgetRepository
-            )
+            PocketBudgetRoot()
         }
 
         waitForIdle()
@@ -281,12 +295,14 @@ class BudgetJourneyUiTest {
         val currentMonth = YearMonth.now()
         val prevMonth = currentMonth.previous()
 
+        startTestKoin(
+            transactionRepository = transactionRepository,
+            budgetRepository = budgetRepository,
+            categoryBudgetRepository = categoryBudgetRepository
+        )
+
         setContent {
-            PocketBudgetRoot(
-                repository = transactionRepository,
-                budgetRepository = budgetRepository,
-                categoryBudgetRepository = categoryBudgetRepository
-            )
+            PocketBudgetRoot()
         }
 
         waitForIdle()
@@ -413,12 +429,14 @@ class BudgetJourneyUiTest {
         val currentMonth = YearMonth.now()
         val prevMonth = currentMonth.previous()
 
+        startTestKoin(
+            transactionRepository = transactionRepository,
+            budgetRepository = budgetRepository,
+            categoryBudgetRepository = categoryBudgetRepository
+        )
+
         setContent {
-            PocketBudgetRoot(
-                repository = transactionRepository,
-                budgetRepository = budgetRepository,
-                categoryBudgetRepository = categoryBudgetRepository
-            )
+            PocketBudgetRoot()
         }
 
         waitForIdle()

@@ -12,8 +12,11 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.hoods.pocket.PocketBudgetRoot
+import org.hoods.pocket.di.startTestKoin
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.domain.usecase.FakeTransactionRepository
+import org.koin.core.context.stopKoin
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -21,14 +24,21 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalTestApi::class)
 class TransactionJourneyUiTest {
 
+    @AfterTest
+    fun tearDown() {
+        stopKoin()
+    }
+
     @Test
     fun completeTransactionLifecycleJourney_addEditDeleteCrossScreen() = runComposeUiTest {
         val repository = FakeTransactionRepository()
         val currentMonth = YearMonth.now()
         val prevMonth = currentMonth.previous()
 
+        startTestKoin(transactionRepository = repository)
+
         setContent {
-            PocketBudgetRoot(repository = repository)
+            PocketBudgetRoot()
         }
 
         waitForIdle()

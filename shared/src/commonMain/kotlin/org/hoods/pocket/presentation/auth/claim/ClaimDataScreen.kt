@@ -6,10 +6,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.collectLatest
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun ClaimDataScreen(
-    viewModel: ClaimDataViewModel,
+    targetUserId: String = "",
+    viewModel: ClaimDataViewModel = koinViewModel(key = "claim-$targetUserId") { parametersOf(targetUserId) },
     onClaimFinished: () -> Unit,
     modifier: Modifier = Modifier
 ) {

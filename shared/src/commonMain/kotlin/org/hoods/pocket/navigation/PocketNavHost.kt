@@ -3,7 +3,6 @@ package org.hoods.pocket.navigation
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -13,36 +12,18 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.presentation.auth.account.AccountScreen
-import org.hoods.pocket.presentation.auth.account.AccountViewModel
 import org.hoods.pocket.presentation.auth.claim.ClaimDataScreen
-import org.hoods.pocket.presentation.auth.claim.ClaimDataViewModel
 import org.hoods.pocket.presentation.auth.setup.SetupConfigScreen
-import org.hoods.pocket.presentation.auth.setup.SetupConfigViewModel
 import org.hoods.pocket.presentation.auth.sign_in.SignInScreen
-import org.hoods.pocket.presentation.auth.sign_in.SignInViewModel
 import org.hoods.pocket.presentation.budget.dashboard.BudgetDashboardScreen
-import org.hoods.pocket.presentation.budget.dashboard.BudgetDashboardViewModel
 import org.hoods.pocket.presentation.budget.set.SetBudgetScreen
-import org.hoods.pocket.presentation.budget.set.SetBudgetViewModel
 import org.hoods.pocket.presentation.layout.AppLayoutMode
 import org.hoods.pocket.presentation.transaction.add.AddTransactionScreen
-import org.hoods.pocket.presentation.transaction.add.AddTransactionViewModel
 import org.hoods.pocket.presentation.transaction.edit.EditTransactionScreen
-import org.hoods.pocket.presentation.transaction.edit.EditTransactionViewModel
 import org.hoods.pocket.presentation.transaction.list.TransactionListScreen
-import org.hoods.pocket.presentation.transaction.list.TransactionListViewModel
 
 @Composable
 fun PocketNavHost(
-    listViewModel: TransactionListViewModel,
-    addViewModelFactory: () -> AddTransactionViewModel,
-    editViewModelFactory: () -> EditTransactionViewModel,
-    budgetDashboardViewModelFactory: (YearMonth) -> BudgetDashboardViewModel,
-    setBudgetViewModelFactory: (YearMonth) -> SetBudgetViewModel,
-    signInViewModelFactory: (() -> SignInViewModel)? = null,
-    claimDataViewModelFactory: ((String) -> ClaimDataViewModel)? = null,
-    accountViewModelFactory: (() -> AccountViewModel)? = null,
-    setupConfigViewModelFactory: (() -> SetupConfigViewModel)? = null,
     layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
@@ -75,11 +56,11 @@ fun PocketNavHost(
             }
         },
         onNavigateToBudgets = {
-            val currentMonth = listViewModel.uiState.value.selectedMonth
+            val now = YearMonth.now()
             navController.navigate(
                 Screen.BudgetDashboard(
-                    year = currentMonth.year,
-                    month = currentMonth.month
+                    year = now.year,
+                    month = now.month
                 )
             ) {
                 popUpTo<Screen.TransactionList> {
@@ -108,7 +89,6 @@ fun PocketNavHost(
         ) {
             composable<Screen.TransactionList> {
                 TransactionListScreen(
-                    viewModel = listViewModel,
                     onAddTransactionClick = {
                         navController.navigate(Screen.AddTransaction)
                     },
@@ -118,10 +98,8 @@ fun PocketNavHost(
                     layoutMode = layoutMode
                 )
             }
-            composable<Screen.AddTransaction> { backStackEntry ->
-                val addViewModel = remember(backStackEntry) { addViewModelFactory() }
+            composable<Screen.AddTransaction> {
                 AddTransactionScreen(
-                    viewModel = addViewModel,
                     onSaveSuccess = {
                         navController.popBackStack()
                     },
@@ -133,9 +111,7 @@ fun PocketNavHost(
             }
             composable<Screen.EditTransaction> { backStackEntry ->
                 val editRoute = backStackEntry.toRoute<Screen.EditTransaction>()
-                val editViewModel = remember(editRoute.transactionId) { editViewModelFactory() }
                 EditTransactionScreen(
-                    viewModel = editViewModel,
                     transactionId = editRoute.transactionId,
                     onSaveSuccess = {
                         navController.popBackStack()
@@ -156,17 +132,13 @@ fun PocketNavHost(
                 } else {
                     YearMonth.now()
                 }
-                val dashboardViewModel = remember(route.year, route.month) {
-                    budgetDashboardViewModelFactory(initialMonth)
-                }
                 BudgetDashboardScreen(
-                    viewModel = dashboardViewModel,
-                    onSetBudgetClick = {
-                        val month = dashboardViewModel.uiState.value.selectedMonth
+                    initialMonth = initialMonth,
+                    onSetBudgetClick = { targetMonth ->
                         navController.navigate(
                             Screen.SetBudget(
-                                year = month.year,
-                                month = month.month
+                                year = targetMonth.year,
+                                month = targetMonth.month
                             )
                         )
                     },
@@ -176,11 +148,8 @@ fun PocketNavHost(
             composable<Screen.SetBudget> { backStackEntry ->
                 val route = backStackEntry.toRoute<Screen.SetBudget>()
                 val targetMonth = YearMonth(route.year, route.month)
-                val setBudgetViewModel = remember(route.year, route.month) {
-                    setBudgetViewModelFactory(targetMonth)
-                }
                 SetBudgetScreen(
-                    viewModel = setBudgetViewModel,
+                    targetMonth = targetMonth,
                     onSaveSuccess = {
                         navController.popBackStack()
                     },
@@ -195,80 +164,65 @@ fun PocketNavHost(
             }
 
             // Auth Screens
-            composable<Screen.Auth> { backStackEntry ->
-                if (signInViewModelFactory != null) {
-                    val signInViewModel = remember(backStackEntry) { signInViewModelFactory() }
-                    SignInScreen(
-                        viewModel = signInViewModel,
-                        onSignInSuccess = { userId ->
-                            navController.navigate(Screen.TransactionList) {
-                                popUpTo<Screen.TransactionList> { inclusive = true }
-                            }
-                        },
-                        onClaimRequired = { userId ->
-                            navController.navigate(Screen.ClaimData(userId))
-                        },
-                        onBackClick = {
-                            navController.popBackStack()
+            composable<Screen.Auth> {
+                SignInScreen(
+                    onSignInSuccess = {
+                        navController.navigate(Screen.TransactionList) {
+                            popUpTo<Screen.TransactionList> { inclusive = true }
                         }
-                    )
-                }
+                    },
+                    onClaimRequired = { userId ->
+                        navController.navigate(Screen.ClaimData(userId))
+                    },
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable<Screen.ClaimData> { backStackEntry ->
                 val route = backStackEntry.toRoute<Screen.ClaimData>()
-                if (claimDataViewModelFactory != null) {
-                    val claimViewModel = remember(route.targetUserId) { claimDataViewModelFactory(route.targetUserId) }
-                    ClaimDataScreen(
-                        viewModel = claimViewModel,
-                        onClaimFinished = {
-                            navController.navigate(Screen.TransactionList) {
-                                popUpTo<Screen.TransactionList> { inclusive = true }
-                            }
+                ClaimDataScreen(
+                    targetUserId = route.targetUserId,
+                    onClaimFinished = {
+                        navController.navigate(Screen.TransactionList) {
+                            popUpTo<Screen.TransactionList> { inclusive = true }
                         }
-                    )
-                }
+                    }
+                )
             }
 
-            composable<Screen.Account> { backStackEntry ->
-                if (accountViewModelFactory != null) {
-                    val accountViewModel = remember(backStackEntry) { accountViewModelFactory() }
-                    AccountScreen(
-                        viewModel = accountViewModel,
-                        onSignOutSuccess = {
-                            navController.navigate(Screen.TransactionList) {
-                                popUpTo<Screen.TransactionList> { inclusive = true }
-                            }
-                        },
-                        onNavigateToAuth = {
-                            navController.navigate(Screen.Auth)
-                        },
-                        onNavigateToSetup = {
-                            navController.navigate(Screen.SetupConfig)
-                        },
-                        onBackClick = {
-                            navController.popBackStack()
+            composable<Screen.Account> {
+                AccountScreen(
+                    onSignOutSuccess = {
+                        navController.navigate(Screen.TransactionList) {
+                            popUpTo<Screen.TransactionList> { inclusive = true }
                         }
-                    )
-                }
+                    },
+                    onNavigateToAuth = {
+                        navController.navigate(Screen.Auth)
+                    },
+                    onNavigateToSetup = {
+                        navController.navigate(Screen.SetupConfig)
+                    },
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
-            composable<Screen.SetupConfig> { backStackEntry ->
-                if (setupConfigViewModelFactory != null) {
-                    val setupViewModel = remember(backStackEntry) { setupConfigViewModelFactory() }
-                    SetupConfigScreen(
-                        viewModel = setupViewModel,
-                        onConfigChanged = {
-                            navController.popBackStack()
-                        },
-                        onContinueOffline = {
-                            navController.popBackStack()
-                        },
-                        onBackClick = {
-                            navController.popBackStack()
-                        }
-                    )
-                }
+            composable<Screen.SetupConfig> {
+                SetupConfigScreen(
+                    onConfigChanged = {
+                        navController.popBackStack()
+                    },
+                    onContinueOffline = {
+                        navController.popBackStack()
+                    },
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
             }
         }
     }

@@ -14,16 +14,17 @@
 
 ---
 
-## 6-Point Checklist
+## 7-Point Checklist
 
 1. **Domain Layer Purity**: Does `shared/src/commonMain/kotlin/.../domain` remain 100% free of Room, SQLite, Compose, Android, iOS, or Desktop APIs?
 2. **Multiplatform Source-Set Separation**: Does business, domain, and presentation logic reside in `shared/src/commonMain/`? Do platform source sets contain platform glue only?
 3. **Screen Quad Decomposition**: Does each changed screen strictly implement `<Feature>ViewModel`, `<Feature>UiState`, `<Feature>Screen`, and `<Feature>Content`?
    - `<Feature>Screen`: state collection, event handling, callback wiring only; **no layout**.
    - `<Feature>Content`: pure stateless UI receiving `UiState` and event lambdas; **no ViewModel, repository, use-case, or navigation dependencies**. Feature screens must not construct their own top-level navigation chrome (sidebars, bottom bars); top-level chrome belongs in `PocketNavigationShell` wrapping `PocketNavHost`.
-4. **ViewModel Boundaries & Decision Ownership**: Do ViewModels depend **only** on domain use cases (no Room, DAOs, repositories, or navigation controllers)? Do they expose one-time outcomes as events rather than taking navigation callbacks? Are authentication and ownership decisions (such as deciding whether local data claiming is required) evaluated in the ViewModel and emitted as explicit events (e.g. `ClaimRequired`)?
+4. **ViewModel Boundaries & Decision Ownership**: Do ViewModels depend **only** on domain use cases (no Room, DAOs, repositories, navigation controllers, or Koin APIs)? Do they expose one-time outcomes as events rather than taking navigation callbacks? Are authentication and ownership decisions (such as deciding whether local data claiming is required) evaluated in the ViewModel and emitted as explicit events (e.g. `ClaimRequired`)?
 5. **Navigation & Application Shell**: Are routes typed serializable objects carrying IDs/primitives only (never full domain models)? Does the NavHost own back-stack control? Does the shared application shell (`PocketNavigationShell`) provide top-level navigation (Transactions, Budgets, Account) uniformly across compact and wider layouts rather than delegating top-level navigation to individual feature screens?
 6. **Design System Tokens**: Does UI code consume theme tokens or `MaterialTheme` without hardcoded hex colors or arbitrary magic layout numbers?
+7. **Dependency Injection & Composition**: Does dependency construction belong in Koin modules and platform composition code, rejecting manual construction chains spreading through the UI? Do shared Koin modules provide repositories, use cases, and ViewModels, while platform Koin modules provide platform-only objects (Room builders, SQLite drivers, Ktor engines, runtime configuration)? Do platform entry points start Koin while `PocketBudgetRoot` starts the UI without becoming a manual dependency construction chain? Do stateful screens obtain ViewModels through Koin, while stateless content composables receive plain state and event lambdas only without direct dependency lookup? Do unit tests construct ViewModels directly with fakes?
 
 ---
 
@@ -39,6 +40,7 @@
 - [x] ViewModel Boundaries: [PASS / FAIL - Details]
 - [x] Navigation & Route Contracts: [PASS / FAIL - Details]
 - [x] Design Token Adherence: [PASS / FAIL - Details]
+- [x] Dependency Injection & Composition: [PASS / FAIL - Details]
 
 #### Known Debt (Non-blocking):
 - [Pre-existing architectural issues noted outside the current diff, or "None"]
