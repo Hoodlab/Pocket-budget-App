@@ -23,11 +23,15 @@ class PocketSyncCoordinator(
     private val authRepository: AuthRepository,
     private val syncOutboxDao: SyncOutboxDao,
     private val config: SupabaseConfig,
+    private val connectivityObserver: org.hoods.pocket.domain.service.ConnectivityObserver? = null,
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) : SyncCoordinator {
 
     private val _syncState = MutableStateFlow<AppSyncState>(AppSyncState.Idle)
     override val syncState: StateFlow<AppSyncState> = _syncState.asStateFlow()
+
+    private val _pendingCount = MutableStateFlow(0)
+    override val pendingCount: StateFlow<Int> = _pendingCount.asStateFlow()
 
     private val syncMutex = Mutex()
     private var pendingReSync = false
@@ -49,6 +53,7 @@ class PocketSyncCoordinator(
                                 // 2. Reactive observation of outbox mutations
                                 syncOutboxDao.observePendingMutationCount(authState.user.id)
                                     .collect { pendingCount ->
+                                        _pendingCount.value = pendingCount
                                         if (pendingCount > 0) {
                                             if (_syncState.value !is AppSyncState.Syncing) {
                                                 _syncState.value = AppSyncState.Pending(pendingCount)
@@ -58,12 +63,31 @@ class PocketSyncCoordinator(
                                     }
                             }
                         } else {
+                            _pendingCount.value = 0
                             _syncState.value = AppSyncState.Idle
                         }
                     }
                     is AuthState.Unauthenticated -> {
+                        _pendingCount.value = 0
                         _syncState.value = AppSyncState.Idle
                     }
+                }
+            }
+        }
+
+        connectivityObserver?.let { observer ->
+            coroutineScope.launch {
+                var wasOnline = observer.isOnline.value
+                observer.isOnline.collect { isOnline ->
+                    if (!wasOnline && isOnline) {
+                        val currentAuth = authRepository.authState.value
+                        if (currentAuth is AuthState.Authenticated && config.isConfigured) {
+                            if (syncOutboxDao.getPendingMutationCount(currentAuth.user.id) > 0) {
+                                performSync(currentAuth.user.id, isInitial = false)
+                            }
+                        }
+                    }
+                    wasOnline = isOnline
                 }
             }
         }
@@ -92,6 +116,15 @@ class PocketSyncCoordinator(
 
             val pendingCount = syncOutboxDao.getPendingMutationCount(userId)
             if (!isInitial && pendingCount == 0) {
+                return@withLock
+            }
+
+            if (connectivityObserver?.isOnline?.value == false) {
+                _syncState.value = AppSyncState.Error(
+                    message = "Device is offline",
+                    pendingCount = pendingCount,
+                    canRetry = true
+                )
                 return@withLock
             }
 

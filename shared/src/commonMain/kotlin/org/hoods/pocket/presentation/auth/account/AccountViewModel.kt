@@ -15,11 +15,15 @@ import org.hoods.pocket.data.remote.SupabaseConfig
 import org.hoods.pocket.data.remote.SupabaseEnvironment
 import org.hoods.pocket.domain.model.AuthState
 import org.hoods.pocket.domain.usecase.GetAuthStateUseCase
+import org.hoods.pocket.domain.usecase.GetSyncStatusUseCase
+import org.hoods.pocket.domain.usecase.RequestSyncUseCase
 import org.hoods.pocket.domain.usecase.SignOutUseCase
 
 class AccountViewModel(
     private val getAuthStateUseCase: GetAuthStateUseCase,
     private val signOutUseCase: SignOutUseCase,
+    private val getSyncStatusUseCase: GetSyncStatusUseCase,
+    private val requestSyncUseCase: RequestSyncUseCase,
     private val config: SupabaseConfig,
     coroutineScope: CoroutineScope? = null
 ) : ViewModel() {
@@ -29,8 +33,14 @@ class AccountViewModel(
     private val _uiState = MutableStateFlow(
         AccountUiState(
             environmentName = when (config.environment) {
-                SupabaseEnvironment.LOCAL -> "Local Supabase (127.0.0.1:54321)"
-                SupabaseEnvironment.HOSTED_DEV -> "Hosted Dev (hyetpnyruynichpsxyvz)"
+                SupabaseEnvironment.LOCAL -> {
+                    val hostPort = config.url?.removePrefix("http://")?.removePrefix("https://") ?: "127.0.0.1:54321"
+                    "Local Supabase ($hostPort)"
+                }
+                SupabaseEnvironment.HOSTED_DEV -> {
+                    val host = config.url?.removePrefix("https://")?.removePrefix("http://")?.substringBefore(".supabase.co") ?: "Configured"
+                    "Hosted Dev ($host)"
+                }
                 SupabaseEnvironment.UNCONFIGURED -> "Offline (Unconfigured)"
             }
         )
@@ -62,6 +72,26 @@ class AccountViewModel(
                     }
                 }
             }
+        }
+
+        scope.launch {
+            getSyncStatusUseCase().collect { status ->
+                _uiState.update { it.copy(syncStatus = status) }
+            }
+        }
+    }
+
+    fun onSyncNow() {
+        if (!_uiState.value.canSyncNow) return
+        scope.launch {
+            requestSyncUseCase()
+        }
+    }
+
+    fun onRetrySync() {
+        if (!_uiState.value.canRetry) return
+        scope.launch {
+            requestSyncUseCase()
         }
     }
 

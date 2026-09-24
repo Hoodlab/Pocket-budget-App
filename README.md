@@ -9,7 +9,7 @@ Pocket Budget is a Kotlin Multiplatform Compose application for exploring person
 - **iOS:** `iosApp/`
 - **Shared Kotlin and Compose code:** `shared/`
 
-See [the architecture guide](docs/architecture.md) for the module boundaries and [the contribution guide](docs/contributing.md) for day-to-day workflow.
+See [the architecture guide](docs/architecture.md) for module boundaries, [the configuration guide](docs/configuration.md) for Supabase environment setup, and [the contribution guide](docs/contributing.md) for day-to-day workflow.
 
 ## Prerequisites
 

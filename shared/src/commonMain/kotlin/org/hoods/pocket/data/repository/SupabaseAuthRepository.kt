@@ -27,12 +27,18 @@ class SupabaseAuthRepository(
 
     val client: SupabaseClient? = when {
         clientOverride != null -> clientOverride
-        config.isConfigured -> createSupabaseClient(
-            supabaseUrl = config.url.orEmpty(),
-            supabaseKey = config.publishableKey.orEmpty()
-        ) {
-            install(Auth)
-            install(Postgrest)
+        config.isConfigured -> {
+            try {
+                createSupabaseClient(
+                    supabaseUrl = config.url.orEmpty(),
+                    supabaseKey = config.publishableKey.orEmpty()
+                ) {
+                    install(Auth)
+                    install(Postgrest)
+                }
+            } catch (e: Throwable) {
+                null
+            }
         }
         else -> null
     }

@@ -41,13 +41,13 @@ fun getSharedAppDatabase(): AppDatabase {
 
 private var authRepositoryInstance: AuthRepository? = null
 
-fun getSharedAuthRepository(config: SupabaseConfig = SupabaseConfig.local()): AuthRepository {
+fun getSharedAuthRepository(config: SupabaseConfig = SupabaseConfig.unconfigured): AuthRepository {
     return authRepositoryInstance ?: synchronized(Unit) {
         authRepositoryInstance ?: SupabaseAuthRepository(config).also { authRepositoryInstance = it }
     }
 }
 
-fun createAuthRepository(config: SupabaseConfig = SupabaseConfig.local()): AuthRepository {
+fun createAuthRepository(config: SupabaseConfig = SupabaseConfig.unconfigured): AuthRepository {
     return getSharedAuthRepository(config)
 }
 

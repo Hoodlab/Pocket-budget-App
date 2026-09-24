@@ -26,3 +26,14 @@ compose.desktop {
         }
     }
 }
+
+tasks.withType<JavaExec>().configureEach {
+    systemProperties(
+        System.getProperties()
+            .filterKeys { key ->
+                val k = key.toString()
+                k.startsWith("supabase.") || k.startsWith("pocket.") || k.startsWith("SUPABASE_")
+            }
+            .mapKeys { it.key.toString() }
+    )
+}

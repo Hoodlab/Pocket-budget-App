@@ -41,6 +41,8 @@ import org.hoods.pocket.presentation.theme.PocketColors
 import org.hoods.pocket.presentation.theme.PocketTheme
 import androidx.compose.ui.tooling.preview.Preview
 
+import org.hoods.pocket.domain.model.SyncStatus
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountContent(
@@ -49,6 +51,8 @@ fun AccountContent(
     onNavigateToAuth: () -> Unit,
     onNavigateToSetup: () -> Unit,
     onBackClick: () -> Unit,
+    onSyncNow: () -> Unit = {},
+    onRetrySync: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -183,6 +187,130 @@ fun AccountContent(
                     }
                 }
 
+                // Cloud Synchronization Card
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("account_sync_card")
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Cloud Synchronization",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            val isOffline = uiState.syncStatus is SyncStatus.Offline
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        if (isOffline) PocketColors.SurfaceContainerHigh
+                                        else PocketColors.PrimaryContainer
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = if (isOffline) "Offline" else "Online",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (isOffline) PocketColors.OnSurfaceVariant else PocketColors.OnPrimaryContainer,
+                                    modifier = Modifier.testTag("account_network_status")
+                                )
+                            }
+                        }
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val (title, description) = when (val s = uiState.syncStatus) {
+                                is SyncStatus.SignedOut ->
+                                    "Local-Only Mode" to "Changes remain stored on this device. Sign in to synchronize across devices."
+                                is SyncStatus.Unconfigured ->
+                                    "Sync Unavailable" to "Supabase backend is unconfigured. Connect a project in Environment Setup."
+                                is SyncStatus.Offline ->
+                                    "Device Offline" to if (s.pendingCount > 0) "${s.pendingCount} change(s) queued to sync when connected." else "You can continue working offline."
+                                is SyncStatus.Syncing ->
+                                    "Syncing with Cloud..." to "Synchronizing ${s.pendingCount} pending change(s)..."
+                                is SyncStatus.Pending ->
+                                    "${s.pendingCount} Change(s) Waiting" to "Local mutations queued for upload."
+                                is SyncStatus.Success ->
+                                    "Cloud Synced" to "Last synced: ${formatLastSyncedTime(s.lastSyncedAtEpochMillis)} • Pushed: ${s.pushedCount} | Pulled: ${s.pulledCount}"
+                                is SyncStatus.Failure ->
+                                    "Sync Failed" to "${s.message} • ${s.pendingCount} change(s) saved safely locally."
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (uiState.syncStatus is SyncStatus.Syncing) {
+                                    CircularProgressIndicator(
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = when (uiState.syncStatus) {
+                                        is SyncStatus.Failure -> MaterialTheme.colorScheme.error
+                                        is SyncStatus.Success -> PocketColors.Income
+                                        else -> MaterialTheme.colorScheme.onSurface
+                                    },
+                                    modifier = Modifier.testTag("account_sync_state_label")
+                                )
+                            }
+                            Text(
+                                text = description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.testTag("account_sync_state_description")
+                            )
+                        }
+
+                        if (uiState.canRetry) {
+                            Button(
+                                onClick = onRetrySync,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                                    .testTag("retry_sync_button")
+                            ) {
+                                Text("Retry Sync")
+                            }
+                        } else if (uiState.canSyncNow) {
+                            OutlinedButton(
+                                onClick = onSyncNow,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                                    .testTag("sync_now_button")
+                            ) {
+                                Text("Sync Now")
+                            }
+                        }
+                    }
+                }
+
                 if (uiState.errorMessage != null) {
                     Card(
                         colors = CardDefaults.cardColors(
@@ -271,5 +399,17 @@ fun AccountContentPreview() {
             onNavigateToSetup = {},
             onBackClick = {}
         )
+    }
+}
+
+private fun formatLastSyncedTime(lastSyncedAtEpochMillis: Long): String {
+    if (lastSyncedAtEpochMillis == 0L) return "Never"
+    val diff = kotlin.time.Clock.System.now().toEpochMilliseconds() - lastSyncedAtEpochMillis
+    return when {
+        diff < 0L -> "Just now"
+        diff < 60_000L -> "Just now"
+        diff < 3_600_000L -> "${diff / 60_000L} min ago"
+        diff < 86_400_000L -> "${diff / 3_600_000L} hr ago"
+        else -> "${diff / 86_400_000L} day(s) ago"
     }
 }

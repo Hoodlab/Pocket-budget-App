@@ -40,7 +40,11 @@ CREATE OR REPLACE FUNCTION public.is_mutation_winner(
     p_existing_updated_at BIGINT,
     p_existing_device_id TEXT,
     p_existing_mutation_id TEXT
-) RETURNS BOOLEAN AS $$
+) RETURNS BOOLEAN
+LANGUAGE plpgsql
+IMMUTABLE
+SET search_path = public
+AS $$
 BEGIN
     IF p_incoming_updated_at <> p_existing_updated_at THEN
         RETURN p_incoming_updated_at > p_existing_updated_at;
@@ -50,7 +54,7 @@ BEGIN
     END IF;
     RETURN p_incoming_mutation_id > p_existing_mutation_id;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$;
 
 -- 5. RPC: apply_sync_mutations
 CREATE OR REPLACE FUNCTION public.apply_sync_mutations(p_mutations JSONB)

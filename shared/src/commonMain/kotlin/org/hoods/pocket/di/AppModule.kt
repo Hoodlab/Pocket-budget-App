@@ -29,6 +29,8 @@ import org.hoods.pocket.domain.usecase.RemoveCategoryBudgetUseCase
 import org.hoods.pocket.domain.usecase.SaveCategoryAllocationsUseCase
 import org.hoods.pocket.domain.usecase.SetCategoryBudgetUseCase
 import org.hoods.pocket.domain.usecase.SetMonthlyBudgetUseCase
+import org.hoods.pocket.domain.usecase.GetSyncStatusUseCase
+import org.hoods.pocket.domain.usecase.RequestSyncUseCase
 import org.hoods.pocket.domain.usecase.SignInUseCase
 import org.hoods.pocket.domain.usecase.SignOutUseCase
 import org.hoods.pocket.domain.usecase.SignUpUseCase
@@ -38,6 +40,7 @@ import org.hoods.pocket.presentation.auth.claim.ClaimDataViewModel
 import org.hoods.pocket.presentation.auth.setup.SetupConfigViewModel
 import org.hoods.pocket.presentation.auth.sign_in.SignInViewModel
 import org.hoods.pocket.presentation.budget.dashboard.BudgetDashboardViewModel
+import org.hoods.pocket.presentation.shell.PocketShellViewModel
 import org.hoods.pocket.presentation.budget.set.SetBudgetViewModel
 import org.hoods.pocket.presentation.transaction.add.AddTransactionViewModel
 import org.hoods.pocket.presentation.transaction.edit.EditTransactionViewModel
@@ -100,18 +103,16 @@ val repositoryModule = module {
 }
 
 val syncModule = module {
-    single<org.hoods.pocket.data.sync.RemoteSyncDataSource?> {
-        val client = get<SupabaseAuthRepository>().client
-        if (client != null) org.hoods.pocket.data.sync.SupabaseRemoteSyncDataSource(client) else null
-    }
     single<org.hoods.pocket.data.sync.SyncEngine> {
+        val client = get<SupabaseAuthRepository>().client
+        val remoteDataSource = client?.let { org.hoods.pocket.data.sync.SupabaseRemoteSyncDataSource(it) }
         org.hoods.pocket.data.sync.PocketSyncEngine(
             syncOutboxDao = get(),
             syncMetadataDao = get(),
             transactionDao = get(),
             budgetDao = get(),
             categoryBudgetDao = get(),
-            remoteDataSource = get()
+            remoteDataSource = remoteDataSource
         )
     }
     single<org.hoods.pocket.domain.service.SyncCoordinator>(createdAtStart = true) {
@@ -119,7 +120,8 @@ val syncModule = module {
             syncEngine = get(),
             authRepository = get(),
             syncOutboxDao = get(),
-            config = get()
+            config = get(),
+            connectivityObserver = getOrNull()
         )
     }
 }
@@ -151,6 +153,17 @@ val useCaseModule = module {
     factoryOf(::GetAuthStateUseCase)
     factoryOf(::GetUnclaimedDataSummaryUseCase)
     factoryOf(::ClaimLocalDataUseCase)
+
+    // Sync
+    factory {
+        GetSyncStatusUseCase(
+            authRepository = get(),
+            syncCoordinator = get(),
+            connectivityObserver = get(),
+            isConfigured = { get<org.hoods.pocket.data.remote.SupabaseConfig>().isConfigured }
+        )
+    }
+    factoryOf(::RequestSyncUseCase)
 }
 
 val viewModelModule = module {
@@ -207,15 +220,22 @@ val viewModelModule = module {
         )
     }
     viewModel {
+        PocketShellViewModel(
+            getSyncStatusUseCase = get()
+        )
+    }
+    viewModel {
         AccountViewModel(
             getAuthStateUseCase = get(),
             signOutUseCase = get(),
+            getSyncStatusUseCase = get(),
+            requestSyncUseCase = get(),
             config = get()
         )
     }
     viewModel {
         SetupConfigViewModel(
-            initialConfig = get()
+            config = get()
         )
     }
 }

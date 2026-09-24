@@ -2,6 +2,7 @@ package org.hoods.pocket.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -10,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import org.koin.compose.viewmodel.koinViewModel
 import org.hoods.pocket.domain.model.YearMonth
 import org.hoods.pocket.presentation.auth.account.AccountScreen
 import org.hoods.pocket.presentation.auth.claim.ClaimDataScreen
@@ -18,6 +20,7 @@ import org.hoods.pocket.presentation.auth.sign_in.SignInScreen
 import org.hoods.pocket.presentation.budget.dashboard.BudgetDashboardScreen
 import org.hoods.pocket.presentation.budget.set.SetBudgetScreen
 import org.hoods.pocket.presentation.layout.AppLayoutMode
+import org.hoods.pocket.presentation.shell.PocketShellViewModel
 import org.hoods.pocket.presentation.transaction.add.AddTransactionScreen
 import org.hoods.pocket.presentation.transaction.edit.EditTransactionScreen
 import org.hoods.pocket.presentation.transaction.list.TransactionListScreen
@@ -26,8 +29,10 @@ import org.hoods.pocket.presentation.transaction.list.TransactionListScreen
 fun PocketNavHost(
     layoutMode: AppLayoutMode = AppLayoutMode.current(),
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    shellViewModel: PocketShellViewModel = koinViewModel()
 ) {
+    val syncStatus by shellViewModel.syncStatus.collectAsState()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
@@ -80,7 +85,8 @@ fun PocketNavHost(
             }
         },
         layoutMode = layoutMode,
-        modifier = modifier
+        modifier = modifier,
+        syncStatus = syncStatus
     ) {
         NavHost(
             navController = navController,
@@ -213,12 +219,6 @@ fun PocketNavHost(
 
             composable<Screen.SetupConfig> {
                 SetupConfigScreen(
-                    onConfigChanged = {
-                        navController.popBackStack()
-                    },
-                    onContinueOffline = {
-                        navController.popBackStack()
-                    },
                     onBackClick = {
                         navController.popBackStack()
                     }

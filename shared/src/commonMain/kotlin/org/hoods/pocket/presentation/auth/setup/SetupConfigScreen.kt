@@ -6,14 +6,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.collectLatest
-import org.hoods.pocket.data.remote.SupabaseConfig
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SetupConfigScreen(
     viewModel: SetupConfigViewModel = koinViewModel(),
-    onConfigChanged: (SupabaseConfig) -> Unit,
-    onContinueOffline: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -22,11 +19,8 @@ fun SetupConfigScreen(
     LaunchedEffect(viewModel) {
         viewModel.events.collectLatest { event ->
             when (event) {
-                is SetupConfigEvent.ConfigSelected -> {
-                    onConfigChanged(event.config)
-                }
-                is SetupConfigEvent.ContinueOffline -> {
-                    onContinueOffline()
+                is SetupConfigEvent.NavigateBack -> {
+                    onBackClick()
                 }
             }
         }
@@ -34,10 +28,7 @@ fun SetupConfigScreen(
 
     SetupConfigContent(
         uiState = uiState,
-        onSelectLocal = viewModel::selectLocal,
-        onSelectHostedDev = viewModel::selectHostedDev,
-        onSelectOffline = viewModel::selectOffline,
-        onBackClick = onBackClick,
+        onBackClick = viewModel::onDoneClick,
         modifier = modifier
     )
 }

@@ -9,13 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.hoods.pocket.data.remote.SupabaseConfig
-import org.hoods.pocket.data.remote.SupabaseEnvironment
 
 class SetupConfigViewModel(
-    initialConfig: SupabaseConfig = SupabaseConfig.local(),
+    config: SupabaseConfig,
     coroutineScope: CoroutineScope? = null
 ) : ViewModel() {
 
@@ -23,8 +21,10 @@ class SetupConfigViewModel(
 
     private val _uiState = MutableStateFlow(
         SetupConfigUiState(
-            currentEnvironment = initialConfig.environment,
-            currentUrl = initialConfig.url.orEmpty()
+            environment = config.environment,
+            url = config.url.orEmpty(),
+            hasPublishableKey = !config.publishableKey.isNullOrBlank(),
+            isConfigured = config.isConfigured
         )
     )
     val uiState: StateFlow<SetupConfigUiState> = _uiState.asStateFlow()
@@ -32,44 +32,9 @@ class SetupConfigViewModel(
     private val _events = Channel<SetupConfigEvent>(Channel.BUFFERED)
     val events: Flow<SetupConfigEvent> = _events.receiveAsFlow()
 
-    fun selectLocal() {
-        val config = SupabaseConfig.local()
-        _uiState.update {
-            it.copy(
-                currentEnvironment = SupabaseEnvironment.LOCAL,
-                currentUrl = config.url.orEmpty(),
-                infoMessage = "Connected to Local Supabase"
-            )
-        }
+    fun onDoneClick() {
         scope.launch {
-            _events.send(SetupConfigEvent.ConfigSelected(config))
-        }
-    }
-
-    fun selectHostedDev() {
-        val config = SupabaseConfig.hostedDev()
-        _uiState.update {
-            it.copy(
-                currentEnvironment = SupabaseEnvironment.HOSTED_DEV,
-                currentUrl = config.url.orEmpty(),
-                infoMessage = "Connected to Hosted Dev Supabase"
-            )
-        }
-        scope.launch {
-            _events.send(SetupConfigEvent.ConfigSelected(config))
-        }
-    }
-
-    fun selectOffline() {
-        _uiState.update {
-            it.copy(
-                currentEnvironment = SupabaseEnvironment.UNCONFIGURED,
-                currentUrl = "",
-                infoMessage = "Running in Local Offline Mode"
-            )
-        }
-        scope.launch {
-            _events.send(SetupConfigEvent.ContinueOffline)
+            _events.send(SetupConfigEvent.NavigateBack)
         }
     }
 }

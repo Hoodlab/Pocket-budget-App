@@ -58,10 +58,18 @@ class LocalSupabaseRuntimeSyncIntegrationTest {
     private lateinit var dataOwnershipRepository: RoomDataOwnershipRepository
 
     private val deviceIdProvider = FixedDeviceIdProvider("test-integration-device")
-    private val config = SupabaseConfig.local()
+    private val config = SupabaseConfig(
+        environment = org.hoods.pocket.data.remote.SupabaseEnvironment.LOCAL,
+        url = "http://127.0.0.1:54321",
+        publishableKey = "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
+    )
 
     @BeforeTest
     fun setup() = kotlinx.coroutines.runBlocking {
+        org.junit.Assume.assumeTrue(
+            "Local Supabase stack is not reachable at ${config.url}",
+            isLocalSupabaseReachable()
+        )
         tempFile = File.createTempFile("supabase_runtime_sync_test", ".db")
         database = Room.databaseBuilder<AppDatabase>(name = tempFile.absolutePath)
             .setDriver(BundledSQLiteDriver())
@@ -115,8 +123,29 @@ class LocalSupabaseRuntimeSyncIntegrationTest {
 
     @AfterTest
     fun tearDown() {
-        database.close()
-        tempFile.delete()
+        if (::database.isInitialized) {
+            database.close()
+        }
+        if (::tempFile.isInitialized) {
+            tempFile.delete()
+        }
+    }
+
+    private fun isLocalSupabaseReachable(): Boolean {
+        return try {
+            val socket = java.net.Socket()
+            socket.connect(java.net.InetSocketAddress("127.0.0.1", 54321), 1500)
+            socket.soTimeout = 1500
+            val out = socket.getOutputStream()
+            out.write("GET /auth/v1/health HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n".toByteArray())
+            out.flush()
+            val reader = socket.getInputStream().bufferedReader()
+            val line = reader.readLine()
+            socket.close()
+            line != null && line.contains("200")
+        } catch (_: Exception) {
+            false
+        }
     }
 
     @Test

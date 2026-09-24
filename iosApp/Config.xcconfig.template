@@ -1,0 +1,12 @@
+// Configuration template for Pocket Budget iOS
+// Copy to Config.xcconfig and customize for local or hosted development.
+// Note: In xcconfig files, use https:/$()/ to escape double slashes if needed, or define standard URLs.
+
+// Select environment: LOCAL, HOSTED_DEV, or UNCONFIGURED
+SUPABASE_ENVIRONMENT = LOCAL
+
+// Supabase URL (e.g. http://127.0.0.1:54321 for local stack, or https://<PROJECT-REF>.supabase.co for hosted)
+SUPABASE_URL = http://127.0.0.1:54321
+
+// Supabase publishable / anon key
+SUPABASE_PUBLISHABLE_KEY = <YOUR_SUPABASE_PUBLISHABLE_KEY>

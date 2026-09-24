@@ -445,6 +445,7 @@ private class FakeSyncCoordinator : org.hoods.pocket.domain.service.SyncCoordina
         org.hoods.pocket.domain.model.AppSyncState.Idle
     )
     override val syncState: kotlinx.coroutines.flow.StateFlow<org.hoods.pocket.domain.model.AppSyncState> = _syncState
+    override val pendingCount: kotlinx.coroutines.flow.StateFlow<Int> = kotlinx.coroutines.flow.MutableStateFlow(0)
 
     override fun requestSync(): kotlinx.coroutines.Job {
         requestSyncCount++

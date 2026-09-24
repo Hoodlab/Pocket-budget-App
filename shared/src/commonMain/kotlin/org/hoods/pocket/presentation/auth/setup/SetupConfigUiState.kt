@@ -1,16 +1,14 @@
 package org.hoods.pocket.presentation.auth.setup
 
-import org.hoods.pocket.data.remote.SupabaseConfig
 import org.hoods.pocket.data.remote.SupabaseEnvironment
 
 data class SetupConfigUiState(
-    val currentEnvironment: SupabaseEnvironment = SupabaseEnvironment.LOCAL,
-    val currentUrl: String = "",
-    val isCustom: Boolean = false,
-    val infoMessage: String? = null
+    val environment: SupabaseEnvironment = SupabaseEnvironment.UNCONFIGURED,
+    val url: String = "",
+    val hasPublishableKey: Boolean = false,
+    val isConfigured: Boolean = false
 )
 
 sealed interface SetupConfigEvent {
-    data class ConfigSelected(val config: SupabaseConfig) : SetupConfigEvent
-    data object ContinueOffline : SetupConfigEvent
+    data object NavigateBack : SetupConfigEvent
 }

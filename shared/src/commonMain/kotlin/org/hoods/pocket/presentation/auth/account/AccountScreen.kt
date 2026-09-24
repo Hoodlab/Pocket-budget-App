@@ -35,6 +35,8 @@ fun AccountScreen(
         onNavigateToAuth = viewModel::onNavigateToAuth,
         onNavigateToSetup = viewModel::onNavigateToSetup,
         onBackClick = onBackClick,
+        onSyncNow = viewModel::onSyncNow,
+        onRetrySync = viewModel::onRetrySync,
         modifier = modifier
     )
 }

@@ -130,9 +130,88 @@ Executed `./scripts/verify.sh`:
 ## 5. Remote Service & Governance Status
 
 - **Environment Target**: Development project `hyetpnyruynichpsxyvz` (`Pocket Budget Dev`).
-- **Hosted Supabase Status**: **Read-Only**. Zero mutations or migrations applied to hosted Supabase during this slice.
+- **Hosted Supabase Status**: **Applied & Verified**. The sync protocol migration `create_sync_protocol` (version `20260920170836`) was applied to the hosted development project `hyetpnyruynichpsxyvz` following explicit user approval.
+- **Hosted Verification**:
+  - `list_migrations`: `create_secure_remote_schema` (`20260917150352`), `create_sync_protocol` (`20260920170836`).
+  - Table schemas (`transactions`, `monthly_budgets`, `category_budgets`): RLS enabled, device_id, mutation_id, updated_at_epoch_millis columns present.
+  - RPC functions: `apply_sync_mutations`, `pull_sync_changes`, `is_mutation_winner` active with explicit `SET search_path = public`.
 - **Local Verification Status**:
   - `supabase db reset --local --yes`: PASS
   - `supabase db lint --local`: PASS (0 lint errors)
   - `supabase test db --local`: PASS (44/44 tests passed)
-- **Pending Hosted Mutation**: `supabase/migrations/20260920150000_create_sync_protocol.sql` is ready for review. In accordance with project rules and the `remote-service-change` workflow, it will only be deployed after explicit human approval immediately prior to execution.
+
+---
+
+## 6. Truthful Sync Feedback & Responsive Control
+
+### Architecture & Boundaries
+1. **Connectivity Boundary (`ConnectivityObserver`)**:
+   - Pure domain interface: `val isOnline: StateFlow<Boolean>`.
+   - Multiplatform implementations:
+     - Android: `AndroidConnectivityObserver` registering `ConnectivityManager.NetworkCallback` with internet capability checks.
+     - iOS: `IosConnectivityObserver` utilizing `NWPathMonitor` on main dispatch queue.
+     - JVM: `JvmConnectivityObserver` checking active non-loopback network interfaces periodically.
+2. **Domain Status Model (`SyncStatus`)**:
+   - 7 canonical states:
+     - `SignedOut`: Device in local-only unauthenticated mode.
+     - `Unconfigured`: Backend unconfigured or missing keys.
+     - `Offline(pendingCount)`: Network offline, showing local mode or queued changes.
+     - `Pending(pendingCount)`: Network online, local changes waiting to sync.
+     - `Syncing(pendingCount)`: Active synchronization in progress.
+     - `Success(lastSyncedAtEpochMillis, pushedCount, pulledCount)`: Cloud synced and up to date.
+     - `Failure(message, pendingCount, canRetry)`: Sync attempt failed, local changes preserved, retry status exposed.
+3. **Use Cases**:
+   - `GetSyncStatusUseCase`: Pure domain flow combining auth state, connectivity, coordinator state, outbox pending count, and backend configuration.
+   - `RequestSyncUseCase`: Allows presentation layer to request sync without direct coordinator or engine dependencies.
+4. **Shell & Responsive Indicators (`PocketNavigationShell`)**:
+   - Compact: Compact banner atop screen for active states (`Offline`, `Syncing`, `Pending`, `Failure`) which collapses during steady states (`Success`, `SignedOut`, `Unconfigured`). Clicking navigates to Account screen.
+   - Expanded: Sidebar indicator showing color status dot, title, and subtitle. Clicking navigates to Account screen.
+5. **Account Screen Sync Controls (`AccountContent`)**:
+   - Cloud Synchronization card with network status badge ("Online" / "Offline").
+   - Truthful state titles and descriptions with localized relative timestamp formatting.
+   - "Sync Now" button (for manual triggering when online and not syncing).
+   - "Retry Sync" button (when in failure state with retry allowed).
+
+### Verification & Automated Testing
+- **Domain Use Case Tests**: `GetSyncStatusUseCaseTest.kt` (7/7 tests verifying all distinct status permutations).
+- **Coordinator Tests**: `PocketSyncCoordinatorTest.kt` (11/11 tests, covering outbox pending count observation, offline error handling without invoking engine, and offline-to-online transition sync).
+- **Presentation ViewModel Tests**:
+  - `PocketShellViewModelTest.kt` (reactive status collection).
+  - `AccountViewModelTest.kt` (auth states, sync states, button triggers).
+- **UI Journey & Component Tests**:
+  - `PocketNavigationShellUiTest.kt` (compact active banner, compact steady-state collapse, expanded sidebar indicator, and Account navigation clicks).
+  - `AccountSyncCardUiTest.kt` (all card states, network badges, descriptions, and "Sync Now" / "Retry Sync" action button clicks).
+- **Shared Verification Gate**: All active checks PASSED via `./scripts/verify.sh`.
+
+---
+
+## 7. Multiplatform Supabase Runtime Configuration
+
+### Architecture & Platform Implementations
+1. **Explicit Environments (`SupabaseEnvironment`)**:
+   - `LOCAL`, `HOSTED_DEV`, and `UNCONFIGURED`.
+   - Strict resolution and validation via `SupabaseConfig.resolve(...)`. Enforces URL schemes (`http://`/`https://` for `LOCAL`; strictly `https://` for `HOSTED_DEV`). Blank, invalid, or missing values safely resolve to `UNCONFIGURED` without crashing app startup.
+   - Fail-safe auth client initialization: caught initialization errors in `SupabaseAuthRepository` safely evaluate to `client = null`, keeping local Room budgeting 100% operational offline.
+   - Clean Koin dependency composition: `RemoteSyncDataSource?` constructed inline within `SyncEngine` bean definition, preventing null-bean `InstanceCreationException` when unconfigured.
+2. **Desktop (JVM)**:
+   - Reads JVM system properties (`supabase.environment`, `supabase.url`, `supabase.publishableKey`) with fallback to OS environment variables.
+   - Automatically forwarded in `desktopApp/build.gradle.kts`.
+3. **Android**:
+   - Injected into `BuildConfig` via `androidApp/build.gradle.kts` resolving from `-P` properties, `local.properties`, and environment variables.
+   - Declared `android.permission.INTERNET` and `android.permission.ACCESS_NETWORK_STATE` in manifests and guarded `AndroidConnectivityObserver.checkCurrent()` against `SecurityException`.
+4. **iOS**:
+   - Bundled via `Info.plist` referencing build settings from `iosApp/Config.xcconfig` (with template in `Config.xcconfig.template`). Safely guards against unexpanded `$(VARIABLE)` template strings.
+5. **Presentation & Screen Decomposition**:
+   - Refactored `SetupConfig` screen quad into an informative **Environment Details** screen displaying the active environment badge, masked credentials, platform configuration instructions, and a return button.
+   - Updated `AccountViewModel` to dynamically format environment status.
+6. **Documentation**:
+   - Comprehensive documentation added to `docs/configuration.md` with placeholders only (`<PROJECT_REF>`, `<ANON_KEY>`, etc.) and linked from `README.md`.
+
+### Verification & Automated Testing
+- **Config Unit Tests**: `SupabaseConfigTest.kt` (10/10 tests PASS validating environments, schemes, trimming, and unconfigured fallback).
+- **Desktop JVM Config Tests**: `JvmSupabaseConfigTest.kt` (5/5 tests PASS validating JVM properties, env vars, precedence, and malformed inputs).
+- **Account ViewModel Tests**: `AccountViewModelTest.kt` (PASS verifying dynamic environment title and sync controls).
+- **Auth UI Journey Tests**: `AuthJourneyUiTest.kt` (PASS verifying UI journeys with test configuration double).
+- **Live Integration Test Guard**: `LocalSupabaseRuntimeSyncIntegrationTest.kt` cleanly skipped when local Docker stack is unreachable, preventing false build failures.
+- **Shared Verification Gate**: All active checks PASSED via `./scripts/verify.sh`.
+

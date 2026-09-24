@@ -19,6 +19,7 @@ import org.hoods.pocket.data.repository.FakeAuthRepository
 import org.hoods.pocket.data.repository.RoomDataOwnershipRepository
 import org.hoods.pocket.data.repository.RoomTransactionRepository
 import org.hoods.pocket.di.startTestKoin
+import org.hoods.pocket.di.testLocalConfig
 import org.hoods.pocket.domain.model.Transaction
 import org.hoods.pocket.domain.model.TransactionCategory
 import org.hoods.pocket.domain.model.TransactionType
@@ -98,7 +99,7 @@ class AuthJourneyUiTest {
             categoryBudgetRepository = categoryBudgetRepo,
             authRepository = authRepo,
             dataOwnershipRepository = dataOwnershipRepo,
-            supabaseConfig = SupabaseConfig.local()
+            supabaseConfig = testLocalConfig()
         )
 
         setContent {
@@ -211,7 +212,7 @@ class AuthJourneyUiTest {
             transactionRepository = transactionRepo,
             authRepository = authRepo,
             dataOwnershipRepository = dataOwnershipRepo,
-            supabaseConfig = SupabaseConfig.local()
+            supabaseConfig = testLocalConfig()
         )
 
         setContent {
@@ -260,7 +261,7 @@ class AuthJourneyUiTest {
         val dataOwnershipRepo = RoomDataOwnershipRepository(database.dataOwnershipDao())
         val transactionRepo = RoomTransactionRepository(database.transactionDao(), authRepository = authRepo)
 
-        val config = SupabaseConfig.local()
+        val config = testLocalConfig()
 
         startTestKoin(
             transactionRepository = transactionRepo,
@@ -282,10 +283,11 @@ class AuthJourneyUiTest {
         // Navigate to Setup
         onNodeWithTag("configure_environment_button").performClick()
         waitForIdle()
-        onNodeWithText("Select Runtime Environment").assertIsDisplayed()
+        onNodeWithTag("setup_screen_title").assertIsDisplayed()
+        onNodeWithTag("setup_environment_value").assertTextContains("LOCAL")
 
-        // Select Hosted Dev
-        onNodeWithTag("setup_select_hosted").performClick()
+        // Return to Account
+        onNodeWithTag("setup_done_button").performClick()
         waitForIdle()
 
         // Back on Account screen
@@ -307,7 +309,7 @@ class AuthJourneyUiTest {
             transactionRepository = transactionRepo,
             authRepository = authRepo,
             dataOwnershipRepository = dataOwnershipRepo,
-            supabaseConfig = SupabaseConfig.local()
+            supabaseConfig = testLocalConfig()
         )
 
         setContent {

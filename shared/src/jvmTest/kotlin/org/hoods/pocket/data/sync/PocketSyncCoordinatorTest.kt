@@ -114,13 +114,15 @@ class PocketSyncCoordinatorTest {
 
     private fun createCoordinator(
         scope: CoroutineScope,
-        config: SupabaseConfig = configuredSupabase
+        config: SupabaseConfig = configuredSupabase,
+        connectivityObserver: org.hoods.pocket.domain.service.ConnectivityObserver? = null
     ): PocketSyncCoordinator {
         return PocketSyncCoordinator(
             syncEngine = fakeEngine,
             authRepository = fakeAuthRepo,
             syncOutboxDao = database.syncOutboxDao(),
             config = config,
+            connectivityObserver = connectivityObserver,
             coroutineScope = scope
         )
     }
@@ -297,5 +299,110 @@ class PocketSyncCoordinatorTest {
         val state = coordinator.syncState.first { it is AppSyncState.Idle }
 
         assertEquals(AppSyncState.Idle, state)
+    }
+
+    @Test
+    fun pendingCount_emitsOutboxCount_andResetsOnSignOut() = runTest {
+        coordinator = createCoordinator(backgroundScope)
+        fakeAuthRepo.emitAuthenticated("user-1")
+        coordinator.syncState.first { it is AppSyncState.Success }
+
+        val outboxDao = database.syncOutboxDao()
+        outboxDao.insertOrUpdateMutation(
+            SyncOutboxEntity(
+                mutationId = "mut-pending-1",
+                userId = "user-1",
+                deviceId = "device-1",
+                entityType = "TRANSACTION",
+                entityId = "tx-1",
+                operation = "UPSERT",
+                payloadJson = "{}",
+                updatedAtEpochMillis = 1000L,
+                status = "PENDING",
+                retryCount = 0,
+                lastError = null,
+                createdAtEpochMillis = 1000L
+            )
+        )
+
+        coordinator.pendingCount.first { it == 1 }
+        assertEquals(1, coordinator.pendingCount.value)
+
+        fakeAuthRepo.emitUnauthenticated()
+        coordinator.pendingCount.first { it == 0 }
+        assertEquals(0, coordinator.pendingCount.value)
+    }
+
+    @Test
+    fun offlineDevice_requestSync_setsOfflineErrorWithoutInvokingEngine() = runTest {
+        val isOnlineFlow = MutableStateFlow(false)
+        val fakeConnectivity = object : org.hoods.pocket.domain.service.ConnectivityObserver {
+            override val isOnline: StateFlow<Boolean> = isOnlineFlow.asStateFlow()
+        }
+
+        coordinator = createCoordinator(backgroundScope, connectivityObserver = fakeConnectivity)
+        fakeAuthRepo.emitAuthenticated("user-1")
+
+        val outboxDao = database.syncOutboxDao()
+        outboxDao.insertOrUpdateMutation(
+            SyncOutboxEntity(
+                mutationId = "mut-offline-1",
+                userId = "user-1",
+                deviceId = "device-1",
+                entityType = "TRANSACTION",
+                entityId = "tx-1",
+                operation = "UPSERT",
+                payloadJson = "{}",
+                updatedAtEpochMillis = 1000L,
+                status = "PENDING",
+                retryCount = 0,
+                lastError = null,
+                createdAtEpochMillis = 1000L
+            )
+        )
+
+        fakeEngine.syncInvocations.clear()
+        coordinator.requestSync().join()
+
+        val state = coordinator.syncState.value
+        assertIs<AppSyncState.Error>(state)
+        assertEquals("Device is offline", state.message)
+        assertEquals(0, fakeEngine.syncInvocations.size)
+    }
+
+    @Test
+    fun offlineTransitionToOnline_triggersSyncWhenPendingMutationsExist() = runTest {
+        val isOnlineFlow = MutableStateFlow(false)
+        val fakeConnectivity = object : org.hoods.pocket.domain.service.ConnectivityObserver {
+            override val isOnline: StateFlow<Boolean> = isOnlineFlow.asStateFlow()
+        }
+
+        coordinator = createCoordinator(backgroundScope, connectivityObserver = fakeConnectivity)
+        fakeAuthRepo.emitAuthenticated("user-1")
+
+        val outboxDao = database.syncOutboxDao()
+        outboxDao.insertOrUpdateMutation(
+            SyncOutboxEntity(
+                mutationId = "mut-offline-2",
+                userId = "user-1",
+                deviceId = "device-1",
+                entityType = "TRANSACTION",
+                entityId = "tx-2",
+                operation = "UPSERT",
+                payloadJson = "{}",
+                updatedAtEpochMillis = 1000L,
+                status = "PENDING",
+                retryCount = 0,
+                lastError = null,
+                createdAtEpochMillis = 1000L
+            )
+        )
+
+        fakeEngine.syncInvocations.clear()
+        // Transition to online
+        isOnlineFlow.value = true
+
+        coordinator.syncState.first { it is AppSyncState.Success }
+        assertEquals(1, fakeEngine.syncInvocations.size)
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,24 +33,22 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.hoods.pocket.data.remote.SupabaseEnvironment
-import org.hoods.pocket.presentation.theme.PocketTheme
 import androidx.compose.ui.tooling.preview.Preview
+import org.hoods.pocket.data.remote.SupabaseEnvironment
+import org.hoods.pocket.presentation.theme.PocketColors
+import org.hoods.pocket.presentation.theme.PocketTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetupConfigContent(
     uiState: SetupConfigUiState,
-    onSelectLocal: () -> Unit,
-    onSelectHostedDev: () -> Unit,
-    onSelectOffline: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Supabase Configuration", style = MaterialTheme.typography.headlineSmall) },
+                title = { Text("Environment Details", style = MaterialTheme.typography.headlineSmall) },
                 navigationIcon = {
                     Box(
                         modifier = Modifier
@@ -85,130 +84,157 @@ fun SetupConfigContent(
         ) {
             Column(
                 modifier = Modifier
-                    .widthIn(max = 520.dp)
+                    .widthIn(max = 560.dp)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Select Runtime Environment",
+                    text = "Runtime Environment Details",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.testTag("setup_screen_title")
                 )
 
                 Text(
-                    text = "Pocket Budget requires explicit configuration for remote services. Choose the environment you wish to connect to, or continue offline.",
+                    text = "Supabase configuration is determined once at application startup from platform runtime or build configuration. To switch environments, update your configuration and restart the application.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Active Configuration Card
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("setup_active_config_card")
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Active Environment",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = uiState.environment.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (uiState.isConfigured) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.testTag("setup_environment_value")
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Endpoint URL",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (uiState.url.isNotEmpty()) uiState.url else "None",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.testTag("setup_url_value")
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Publishable Key",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (uiState.hasPublishableKey) "Configured (Present)" else "Not Set",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (uiState.hasPublishableKey) PocketColors.Income else PocketColors.OnSurfaceVariant,
+                                modifier = Modifier.testTag("setup_key_value")
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Client State",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (uiState.isConfigured) "Connected" else "Offline / Local-Only",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = if (uiState.isConfigured) PocketColors.Income else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Platform Instructions Card
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Platform Configuration Guide",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "• Desktop: Run with -Dsupabase.environment=LOCAL -Dsupabase.url=... -Dsupabase.key=... or set SUPABASE_ENVIRONMENT environment variable.\n" +
+                                   "• Android: Configure local.properties with supabase.environment, supabase.url, supabase.publishableKey or pass via build configuration.\n" +
+                                   "• iOS: Configure Config.xcconfig build settings or Info.plist.\n" +
+                                   "• Unconfigured: App operates fully offline with local budgeting.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 1. Local Supabase
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (uiState.currentEnvironment == SupabaseEnvironment.LOCAL) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainer
-                        }
-                    ),
-                    shape = RoundedCornerShape(12.dp),
+                Button(
+                    onClick = onBackClick,
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelectLocal() }
-                        .testTag("setup_select_local")
+                        .height(48.dp)
+                        .testTag("setup_done_button")
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = "💻",
-                            fontSize = 28.sp
-                        )
-                        Column {
-                            Text("Local Supabase", style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                "http://127.0.0.1:54321 (Docker container)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // 2. Hosted Dev
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (uiState.currentEnvironment == SupabaseEnvironment.HOSTED_DEV) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainer
-                        }
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelectHostedDev() }
-                        .testTag("setup_select_hosted")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = "☁",
-                            fontSize = 28.sp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Column {
-                            Text("Hosted Dev Supabase", style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                "pocket-budget-dev (hyetpnyruynichpsxyvz)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // 3. Offline Mode
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (uiState.currentEnvironment == SupabaseEnvironment.UNCONFIGURED) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainer
-                        }
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelectOffline() }
-                        .testTag("setup_select_offline")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = "⚡",
-                            fontSize = 28.sp
-                        )
-                        Column {
-                            Text("Local Offline Mode", style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                "No remote connection. 100% offline Room database.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    Text("Return to Account")
                 }
             }
         }
@@ -221,12 +247,11 @@ fun SetupConfigContentPreview() {
     PocketTheme {
         SetupConfigContent(
             uiState = SetupConfigUiState(
-                currentEnvironment = SupabaseEnvironment.LOCAL,
-                currentUrl = "http://127.0.0.1:54321"
+                environment = SupabaseEnvironment.LOCAL,
+                url = "http://127.0.0.1:54321",
+                hasPublishableKey = true,
+                isConfigured = true
             ),
-            onSelectLocal = {},
-            onSelectHostedDev = {},
-            onSelectOffline = {},
             onBackClick = {}
         )
     }
