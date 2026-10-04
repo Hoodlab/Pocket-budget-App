@@ -25,3 +25,8 @@ supabase/.temp/
 .env
 .env.*
 !.env.example
+
+# iOS Local Config
+*.xcconfig
+!*.xcconfig.template
+
