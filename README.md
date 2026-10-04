@@ -52,6 +52,25 @@ Run the iOS simulator tests from Xcode or with `./gradlew :shared:iosSimulatorAr
 - Keep generated output, local SDK configuration, IDE files, and secrets out of commits; `.gitignore` already covers the common cases.
 - Update the relevant tests whenever you change shared behavior.
 
-## Project status
+## Branches and Student Checkpoints
 
-The current UI is the starter screen. Product requirements, data model, branding, and release policy have not yet been defined in this repository.
+This repository is designed for both learning and reference:
+
+- **`main`:** Contains the complete, production-grade reference implementation with all features, tests, migrations, and documentation.
+- **`dev`:** Starter branch set at the initial commit (`checkpoint-00-starter`). Check out this branch if you are following the course to build the app from scratch.
+
+### Checkpoints Guide
+We provide milestone git tags (`checkpoint-00-starter` through `checkpoint-10-runtime-config`) allowing you to inspect code or compare your progress at every stage of the curriculum.
+
+For complete details on navigating and comparing checkpoints, see **[CHECKPOINTS.md](CHECKPOINTS.md)**.
+
+## Features
+
+- **Transaction Management:** Add, view, categorize, and browse transactions with Month/Year filtering.
+- **Monthly & Category Budgets:** Create spending targets, monitor category limits, and track real-time spending progress.
+- **Financial Dashboard:** Monthly cash flow summary with income, expense, and budget health metrics.
+- **Authentication & Local Data Claiming:** Guest-first local budgeting with seamless sign-in and atomic data ownership claiming.
+- **Offline-First Synchronization:** Local Room persistence with deterministic background sync, outbox retry, and Supabase PostgreSQL backend.
+- **Responsive Navigation:** Adaptive `PocketNavigationShell` providing bottom navigation on compact mobile screens and sidebars on desktop.
+- **Clean Architecture:** Strict separation between pure Domain models, Room/Supabase Data sources, and Compose Presentation quads.
+- **Financial Precision:** Strict `Long` integer cents representation across all monetary logic.
